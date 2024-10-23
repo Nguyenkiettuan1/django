@@ -5,12 +5,7 @@ from rest_framework.decorators import authentication_classes, permission_classes
 
 from .models import usercustomer
 
-
-
 class UserSerializer(serializers.HyperlinkedModelSerializer):
-    class Meta:
-        model = usercustomer
-        fields = '__all__'  # Or you can list specific fields
     def create(self, validated_data):
         password = validated_data.pop('password', None)
         instance = self.Meta.model(**validated_data)
@@ -31,3 +26,8 @@ class UserSerializer(serializers.HyperlinkedModelSerializer):
 
         instance.save()
         return instance
+
+    class Meta:
+        model = usercustomer
+        extra_kwargs = {'password': {'write_only': True}}
+        fields = ('id', 'email', 'username','img', 'phone', 'status', 'created_at', 'updated_at')

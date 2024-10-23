@@ -16,9 +16,15 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path,include
+import os
+from django.conf.urls.static import static
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+MEDIA_URL = '/None/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'None')
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/',include('api.urls')),
     path('api-auth/', include('rest_framework.urls')),
-]
+    # path('none',)
+] + static(MEDIA_URL, document_root=MEDIA_ROOT)
