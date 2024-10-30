@@ -2,7 +2,7 @@ from django.test import TestCase
 
 # Create your tests here.
 from django.test import TestCase
-from ..user.models import UserCustomer
+from ..user.models import usercustomer
 from ..product.models import ProductDetails
 from ..payment.models import payment
 from .models import order, orderdetails
@@ -10,7 +10,7 @@ from .models import order, orderdetails
 class OrderModelTest(TestCase):
     def setUp(self):
         # Create a user, product details, and payment instance for testing
-        self.test_user = UserCustomer.objects.create(
+        self.test_user = usercustomer.objects.create(
             email='testuser@example.com',
             password='password'
         )
@@ -39,7 +39,7 @@ class OrderModelTest(TestCase):
 class OrderDetailsModelTest(TestCase):
     def setUp(self):
         # Create instances for product details and order for testing
-        self.test_user = UserCustomer.objects.create(
+        self.test_user = usercustomer.objects.create(
             email='testuser1@example.com',
             password='password123'
         )

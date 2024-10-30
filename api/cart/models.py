@@ -1,12 +1,12 @@
 import uuid
 from django.db import models
-from ..user.models import UserCustomer
+from ..user.models import usercustomer
 from ..product.models import ProductDetails
 from django.core.validators import MinValueValidator
 
 class Cart(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4)
-    user = models.ForeignKey(UserCustomer, on_delete=models.CASCADE)
+    user = models.ForeignKey(usercustomer, on_delete=models.CASCADE)
     product_details = models.ForeignKey(ProductDetails, on_delete=models.CASCADE)
     qty = models.IntegerField(validators=[MinValueValidator(1)])
     status = models.BooleanField()

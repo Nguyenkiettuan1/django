@@ -1,15 +1,15 @@
 from django.test import TestCase
 from .models import Cart
 from ..product.models import Product,Color,Size
-from api.user.models import UserCustomer  # Adjust based on actual import
+from api.user.models import usercustomer  # Adjust based on actual import
 from api.product.models import ProductDetails  # Adjust based on actual import
 from django.core.exceptions import ValidationError
 
 class CartModelTest(TestCase):
 
     def setUp(self):
-        """Create test instances for UserCustomer and product_details"""
-        self.user = UserCustomer.objects.create(
+        """Create test instances for usercustomer and product_details"""
+        self.user = usercustomer.objects.create(
             email='testuser@gmail.com',
             # password='testpassword123'
         )

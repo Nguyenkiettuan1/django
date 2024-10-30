@@ -1,15 +1,15 @@
 from rest_framework import serializers
-from .models import UserCustomer
+from .models import usercustomer
 from django.contrib.auth.hashers import make_password
 from rest_framework.decorators import authentication_classes, permission_classes
 
-from .models import UserCustomer
+from .models import usercustomer
 
 
 
 class UserSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
-        model = UserCustomer
+        model = usercustomer
         fields = '__all__'  # Or you can list specific fields
     def create(self, validated_data):
         password = validated_data.pop('password', None)
