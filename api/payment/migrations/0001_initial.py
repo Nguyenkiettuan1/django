@@ -28,7 +28,7 @@ class Migration(migrations.Migration):
                 ('payment_Details', models.TextField(max_length=256)),
                 ('status', models.BooleanField(default=False)),
                 ('payment_Method', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='payment.payment_method')),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='user.UserCustomer')),
+                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='user.usercustomer')),
             ],
         ),
     ]
