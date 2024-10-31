@@ -22,7 +22,7 @@ class Migration(migrations.Migration):
                 ('qty', models.IntegerField(validators=[django.core.validators.MinValueValidator(1)])),
                 ('status', models.BooleanField()),
                 ('product_details', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='product.productdetails')),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='user.usercustomer')),
+                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='user.UserCustomer')),
             ],
         ),
     ]
