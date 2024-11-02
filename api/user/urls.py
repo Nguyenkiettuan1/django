@@ -7,6 +7,8 @@ router = routers.DefaultRouter()
 router.register(r'', views.UserViewSet)
 
 urlpatterns = [
+    path('register', views.register, name = 'register'),
     path('login', views.login, name='login'),
-    path('list-user', views.list_user, name = 'list-user')
+    path('list-user', views.list_user, name = 'list-user'),
+    path('user-info', views.user_info, name = 'user-info'),
 ]
