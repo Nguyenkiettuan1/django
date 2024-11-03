@@ -193,11 +193,11 @@ def list_user(request):
     user_status = params_value.get('status', '')
     # Pagination
     page = int(params_value.get('page', 1))
-    limit = int(params_value.get('status', 10))
+    limit = int(params_value.get('limit', 10))
     offset = (page - 1) * limit
     try:
         # Validate authen
-        if not customPermission.is_role_admin(token):
+        if not customPermission.is_role_admin(request, token):
             return JsonResponse({
                 'code': -1,
                 'message': "User dont't have permission to access this action"
