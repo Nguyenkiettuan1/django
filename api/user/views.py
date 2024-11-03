@@ -13,7 +13,6 @@ import json
 from ..utils import Obj, Int, UUIDEncoder
 from ..policies import customPermission
 from ..jwt_token import jwtToken
-import uuid
 
 class UserViewSet(viewsets.ModelViewSet):
     permission_classes_by_action = {'create': [AllowAny]}
@@ -374,11 +373,11 @@ def update_user(request):
             })
         # Go update
         UserCustomer.objects.filter(**where).update(**prepared_update)
+        # Get user value after update
         after_update_user = UserCustomer.objects.filter(**where).first()
-        # update_user = {}
         # Go convert to object
         user_info = model_to_dict(after_update_user)
-        # remove password field
+        # remove password field before return
         user_info.pop('password')
         # return resp
         return JsonResponse({
