@@ -1,4 +1,4 @@
-from .user.models import UserCustomer
+from .user.models import UserCustomer, user_config
 from django.forms.models import model_to_dict
 from .jwt_token import jwtToken
 from .utils import Obj
@@ -20,7 +20,7 @@ class customPermission():
         found_user =  UserCustomer.objects.filter(id = user_id).first()
         # Validate user role
         found_user_role = found_user.role
-        if(found_user_role != 'admin'):
+        if(found_user_role != user_config.get('role', {}).get('ADMIN', 'admin')):
             return False
         return True
     
@@ -40,7 +40,8 @@ class customPermission():
         found_user =  UserCustomer.objects.filter(id = user_id).first()
         # Validate user role
         found_user_role = found_user.role
-        if not found_user_role in ['admin', 'staff']:
+        if not found_user_role in [user_config.get('role', {}).get('ADMIN', 'admin'), 
+                                   user_config.get('role', {}).get('STAFF', 'staff')]:
             return False
         return True
     

@@ -34,18 +34,26 @@ def login(request):
         return JsonResponse({'error': 'Ivalid email address'})
 
     try:
-        user = UserCustomer.objects.get(email = username)
-        user_password = user.password or ''
-        if user.password != password:
+        found_user = UserCustomer.objects.filter(email = username,
+                                                  status = user_config.get('status', {}).get('ACTIVE', 'active')
+                                                ).first() or {}
+        if found_user == {}:
+            return JsonResponse({
+                'code': -1,
+                'message': 'User not found'
+            })
+        found_user = model_to_dict(found_user)
+        user_password = found_user.get('password', '')
+        if user_password != password:
             return JsonResponse({
                 'code': -1,
                 'message': 'Invalid user information'
             })
-        user_id = str(user.id) or ''
+        user_id = str(found_user.get('id', ''))
         token = jwtToken.generate_token(user_id)
         user_info = {
             "id" : user_id,
-            "email" : user.email or ''
+            "email" : found_user.get('email', '')
         }
         # remove user password
         return JsonResponse({
@@ -62,101 +70,6 @@ def login(request):
             'message': LookupError.__doc__
         })
     
-def list_user(request):
-    if not request.method == 'GET':
-        return JsonResponse({'error': 'Send a valid GET request'})
-    # Get header value
-    header_value = request.headers or {}
-    token = header_value.get('Authorization', '')
-    # Get param
-    params_value = request.GET or {}
-    user_id = params_value.get('id', '')
-    user_email = params_value.get('email', '')
-    user_status = params_value.get('status', '')
-    # Pagination
-    page = int(params_value.get('page', 1))
-    limit = int(params_value.get('status', 10))
-    offset = (page - 1) * limit
-    try:
-        # Validate authen
-        if not customPermission.is_role_admin(token):
-            return JsonResponse({
-                'code': -1,
-                'message': "User dont't have permission to access this action"
-            })
-        # Init prepared query
-        prepared_query = {}
-        if not user_id == '':
-            prepared_query['id'] = user_id
-        if not user_status == '':
-            prepared_query['status'] = user_status
-        if not user_email == '':
-            prepared_query['email'] = user_email
-        # Go query
-        found_users = UserCustomer.objects.filter(**prepared_query)
-        # Count total
-        total_count = found_users.count()
-        # Paginate
-        found_users = list(found_users.values()[offset:offset + limit])
-        for i in range(len(found_users)):
-            found_users[i].pop('password')
-        return JsonResponse({
-            'code': 0,
-            'data': found_users,
-            'pagination': {
-                'page': page,
-                'limit': limit,
-                'total': total_count
-            },
-            'message': "Get list user successfully"
-        })
-    except LookupError :
-        return JsonResponse({
-            'code': -1,
-            'message': LookupError.__doc__
-        })
-
-def user_info(request):
-    if not request.method == 'GET':
-        return JsonResponse({'error': 'Send a valid GET request'})
-    # Get header value
-    header_value = request.headers or {}
-    token = header_value.get('Authorization', '')
-    # Get param
-    params_value = request.GET or {}
-    user_id = params_value.get('id', '')
-    try:
-        # Validate authen
-        if not customPermission.is_authenticated(request, token):
-            return JsonResponse({
-                'code': -1,
-                'message': "User have to login"
-            })
-        # get uid from request
-        req_uid = request.content_params.get('uid', '')
-        if req_uid != user_id:
-            if not customPermission.is_role_admin(request, token):
-                return JsonResponse({
-                    'code': -1,
-                    'message': "User dont't have permission to access this action"
-                })
-        # Go query
-        found_users = UserCustomer.objects.get(id = user_id)
-        # Go convert to object
-        user_info = model_to_dict(found_users)
-        # remove password field
-        user_info.pop('password')
-        return JsonResponse({
-            "code": 0,
-            "message": "Get user info successfully",
-            "data": user_info
-        })
-    except LookupError :
-        return JsonResponse({
-            'code': -1,
-            'message': LookupError.__doc__
-        })
-
 @csrf_exempt
 def register(request):
     # Validate method
@@ -203,7 +116,10 @@ def register(request):
                     'message': "Invalid email value"
                 })
             # Go found user with email
-            go_found_user =  UserCustomer.objects.filter(email = user_email).first() or {}
+            go_found_user =  UserCustomer.objects.filter(email = user_email,
+                                                         status__in=[user_config.get('status').get('ACTIVE'),
+                                                                     user_config.get('status').get('IN_ACTIVE')]
+                                                        ).first() or {}
             if(go_found_user != {}):
                 found_user = model_to_dict(go_found_user)
                 if not Obj.is_empty(found_user):
@@ -262,6 +178,220 @@ def register(request):
             'code': -1,
             'message': LookupError.__doc__
         })
+
+@csrf_exempt
+def list_user(request):
+    if not request.method == 'GET':
+        return JsonResponse({'error': 'Send a valid GET request'})
+    # Get header value
+    header_value = request.headers or {}
+    token = header_value.get('Authorization', '')
+    # Get param
+    params_value = request.GET or {}
+    user_id = params_value.get('id', '')
+    user_email = params_value.get('email', '')
+    user_status = params_value.get('status', '')
+    # Pagination
+    page = int(params_value.get('page', 1))
+    limit = int(params_value.get('status', 10))
+    offset = (page - 1) * limit
+    try:
+        # Validate authen
+        if not customPermission.is_role_admin(token):
+            return JsonResponse({
+                'code': -1,
+                'message': "User dont't have permission to access this action"
+            })
+        # Init prepared query
+        prepared_query = {}
+        if not user_id == '':
+            prepared_query['id'] = user_id
+        if not user_status == '':
+            prepared_query['status'] = user_status
+        if not user_email == '':
+            prepared_query['email'] = user_email
+        # Go query
+        found_users = UserCustomer.objects.filter(**prepared_query)
+        # Count total
+        total_count = found_users.count()
+        # Paginate
+        found_users = list(found_users.values()[offset:offset + limit])
+        for i in range(len(found_users)):
+            found_users[i].pop('password')
+        return JsonResponse({
+            'code': 0,
+            'data': found_users,
+            'pagination': {
+                'page': page,
+                'limit': limit,
+                'total': total_count
+            },
+            'message': "Get list user successfully"
+        })
+    except LookupError :
+        return JsonResponse({
+            'code': -1,
+            'message': LookupError.__doc__
+        })
+    
+@csrf_exempt
+def user_info(request):
+    if not request.method == 'GET':
+        return JsonResponse({'error': 'Send a valid GET request'})
+    # Get header value
+    header_value = request.headers or {}
+    token = header_value.get('Authorization', '')
+    # Get param
+    params_value = request.GET or {}
+    user_id = params_value.get('id', '')
+    try:
+        # Validate authen
+        if not customPermission.is_authenticated(request, token):
+            return JsonResponse({
+                'code': -1,
+                'message': "User have to login"
+            })
+        # get uid from request
+        req_uid = request.content_params.get('uid', '')
+        if req_uid != user_id:
+            if not customPermission.is_role_admin(request, token):
+                return JsonResponse({
+                    'code': -1,
+                    'message': "User dont't have permission to access this action"
+                })
+        # Go query
+        found_users = UserCustomer.objects.filter(id = user_id).first()
+        # Go convert to object
+        user_info = model_to_dict(found_users)
+        # remove password field
+        user_info.pop('password')
+        return JsonResponse({
+            "code": 0,
+            "message": "Get user info successfully",
+            "data": user_info
+        })
+    except LookupError :
+        return JsonResponse({
+            'code': -1,
+            'message': LookupError.__doc__
+        })
+
+@csrf_exempt
+def update_user(request):
+    # Validate method
+    if not request.method == 'PUT':
+        return JsonResponse({'error': 'Send a valid PUT request'})
+    # Get header value
+    header_value = request.headers or {}
+    token = header_value.get('Authorization', '')
+    # Get body value
+    raw_data = request.body.decode('utf-8')
+    # Parse raw data
+    data = json.loads(raw_data)
+    user_password = data.get('password', '')
+    user_old_password = data.get('oldPassword', '')
+    user_role = data.get('role', '')
+    user_phone = data.get('phone', '')
+    user_status = data.get('status', '')
+    user_id = data.get('id', '')
+    try:
+        # Validate authen
+        if not customPermission.is_authenticated(request, token):
+            return JsonResponse({
+                'code': -1,
+                'message': "User have to login"
+            })
+        # init is_role_admin
+        is_role_admin = customPermission.is_role_admin(request, token)
+        req_uid = request.content_params.get('uid', '')
+        # Go found req user
+        found_req_user = UserCustomer.objects.filter(id = req_uid).first()
+        # Go convert to object
+        req_user = model_to_dict(found_req_user)
+        # Init prepared update and where query
+        prepared_update = {}
+        where = {
+            "id" : req_uid
+        }
+        # Validate admin update field
+        if user_role != '' or user_status != '' or user_id != '':
+            # throw error if not admin
+            if not is_role_admin:
+                return JsonResponse({
+                    'code': -1,
+                    'message': "User dont't have permission to access these field"
+                })
+            # validate role before update
+            if user_role != '': 
+                if not user_role in list(user_config.get('role', {}).values()):
+                    return JsonResponse({
+                        'code': -1,
+                        'message': "Invalid role value"
+                    })
+                prepared_update['role'] = user_role
+            # Alter where query
+            if user_id != '':
+                where['id'] = user_id
+            # validate status before update
+            if user_status != '':
+                if not user_status in list(user_config.get('role', {}).values()):
+                    return JsonResponse({
+                        'code': -1,
+                        'message': "Invalid status value"
+                    })
+                prepared_update['status'] = user_status
+
+        # Validate password
+        if user_password != '':
+            # If user is not admin -> go compare old password
+            if not is_role_admin:
+                if user_old_password == '':
+                    return JsonResponse({
+                        'code': -1,
+                        'message': "Old password is required"
+                    })
+                else:
+                    if user_old_password != req_user.get('password', ''):
+                        return JsonResponse({
+                            'code': -1,
+                            'message': "Not match password, please input again"
+                        })
+            # Validate password len 
+            if len(user_password) < 6:
+                return JsonResponse({
+                    'code': -1,
+                    'message': "Password must has at least 6 character"
+                })
+            prepared_update['password'] = user_password
+        # Validate phoneNumber
+        if user_phone != '':
+            prepared_update['phone'] = user_phone
+        # validate prepared_query
+        if(Obj.is_empty(prepared_update)):
+            return JsonResponse({
+                'code': -1,
+                'message': "Don't have value to update"
+            })
+        # Go update
+        UserCustomer.objects.filter(**where).update(**prepared_update)
+        after_update_user = UserCustomer.objects.filter(**where).first()
+        # update_user = {}
+        # Go convert to object
+        user_info = model_to_dict(after_update_user)
+        # remove password field
+        user_info.pop('password')
+        # return resp
+        return JsonResponse({
+            "code": 0,
+            "message": "Update user successfully",
+            "data": user_info
+        })
+    except LookupError :
+        return JsonResponse({
+            'code': -1,
+            'message': LookupError.__doc__
+        })
+
 
 
     
