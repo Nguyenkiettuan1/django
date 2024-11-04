@@ -24,7 +24,7 @@ class Migration(migrations.Migration):
                 ('address', models.CharField(max_length=50)),
                 ('status', models.BooleanField(default=False)),
                 ('payment', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='payment.payment')),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='user.usercustomer')),
+                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='user.UserCustomer')),
             ],
         ),
         migrations.CreateModel(

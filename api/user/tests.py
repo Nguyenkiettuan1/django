@@ -2,13 +2,13 @@ from django.test import TestCase
 
 # Create your tests here.
 from django.test import TestCase
-from .models import usercustomer
+from .models import UserCustomer
 
 class UserCustomerModelTest(TestCase):
 
     def setUp(self):
         # Create a test user
-        self.user = usercustomer.objects.create(
+        self.user = UserCustomer.objects.create(
             id='testuser001',
             email='testuser@example.com',
             phone='1234567890',
@@ -29,7 +29,7 @@ class UserCustomerModelTest(TestCase):
     def test_user_email_unique(self):
         # Test unique constraint for email
         with self.assertRaises(Exception):
-            usercustomer.objects.create(
+            UserCustomer.objects.create(
                 id='testuser002',
                 email='testuser@example.com',  # Duplicate email
                 phone='0987654321',
