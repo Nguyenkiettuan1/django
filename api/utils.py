@@ -1,5 +1,6 @@
 import json
 from uuid import UUID
+from django.forms.models import model_to_dict
 
 class Obj():
     def is_empty(obj):
