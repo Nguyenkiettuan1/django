@@ -17,7 +17,9 @@ class customPermission():
         decoded_token_data = decoded_token.get('data', {})
         user_id = decoded_token_data.get('user_id', '')
         # Go find user
-        found_user =  UserCustomer.objects.filter(id = user_id).first()
+        found_user =  UserCustomer.objects.filter(id = user_id).first() or {}
+        if found_user == {}:
+            return False
         # Validate user role
         found_user_role = found_user.role
         if(found_user_role != user_config.get('role', {}).get('ADMIN', 'admin')):

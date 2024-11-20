@@ -582,7 +582,7 @@ def get_list_product(request):
     # Pagination
     page = int(params_value.get('page', 1))
     limit = int(params_value.get('limit', 10))
-    offset = (page - 1) * limit
+    offset = page * limit
     # init is admin
     is_admin = False
     try:
@@ -940,7 +940,7 @@ def get_list_color(request):
     # Pagination
     page = int(params_value.get('page', 1))
     limit = int(params_value.get('limit', 10))
-    offset = (page - 1) * limit
+    offset = page * limit
     try:
         # Validate authen
         if not customPermission.is_role_admin(request, token):
@@ -1143,7 +1143,7 @@ def get_list_size(request):
     # Pagination
     page = int(params_value.get('page', 1))
     limit = int(params_value.get('limit', 10))
-    offset = (page - 1) * limit
+    offset = page * limit
     try:
         # Validate authen
         if not customPermission.is_role_admin(request, token):
@@ -1345,7 +1345,7 @@ def get_list_material(request):
     # Pagination
     page = int(params_value.get('page', 1))
     limit = int(params_value.get('limit', 10))
-    offset = (page - 1) * limit
+    offset = page * limit
     try:
         # Validate authen
         if not customPermission.is_role_admin(request, token):
@@ -1548,7 +1548,7 @@ def get_list_type(request):
     # Pagination
     page = int(params_value.get('page', 1))
     limit = int(params_value.get('limit', 10))
-    offset = (page - 1) * limit
+    offset = page * limit
     try:
         # Validate authen
         if not customPermission.is_role_admin(request, token):

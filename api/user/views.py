@@ -190,10 +190,11 @@ def list_user(request):
     user_id = params_value.get('id', '')
     user_email = params_value.get('email', '')
     user_status = params_value.get('status', '')
+    user_role = params_value.get('role', '')
     # Pagination
-    page = int(params_value.get('page', 1))
+    page = int(params_value.get('page', 0))
     limit = int(params_value.get('limit', 10))
-    offset = (page - 1) * limit
+    offset = page * limit
     try:
         # Validate authen
         if not customPermission.is_role_admin(request, token):
@@ -203,12 +204,24 @@ def list_user(request):
             })
         # Init prepared query
         prepared_query = {}
-        if not user_id == '':
+        if user_id != '':
             prepared_query['id'] = user_id
-        if not user_status == '':
-            prepared_query['status'] = user_status
-        if not user_email == '':
+        if user_email != '':
             prepared_query['email'] = user_email
+        if user_status != '':
+            if not user_status in list(user_config.get('status').values()):
+                return JsonResponse({
+                'code': -1,
+                'message': "Invalid status value"
+            })
+            prepared_query['status'] = user_status
+        if user_role != '':
+            if not user_role in list(user_config.get('role').values()):
+                return JsonResponse({
+                'code': -1,
+                'message': "Invalid status value"
+            })
+            prepared_query['role'] = user_role
         # Go query
         found_users = UserCustomer.objects.filter(**prepared_query)
         # Count total
@@ -333,7 +346,7 @@ def update_user(request):
                 where['id'] = user_id
             # validate status before update
             if user_status != '':
-                if not user_status in list(user_config.get('role', {}).values()):
+                if not user_status in list(user_config.get('status', {}).values()):
                     return JsonResponse({
                         'code': -1,
                         'message': "Invalid status value"

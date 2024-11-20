@@ -1,6 +1,7 @@
 import json
 from uuid import UUID
 from django.forms.models import model_to_dict
+import datetime
 
 class Obj():
     def is_empty(obj):
@@ -25,3 +26,11 @@ class UUIDEncoder(json.JSONEncoder):
             # if the obj is uuid, we simply return the value of uuid
             return obj.hex
         return json.JSONEncoder.default(self, obj)
+    
+class Date():
+    def validate_date_format(date_string):
+        try:
+            datetime.datetime.strptime(date_string, '%Y-%m-%d')
+            return True
+        except ValueError:
+            return False
