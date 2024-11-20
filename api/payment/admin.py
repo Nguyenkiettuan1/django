@@ -2,10 +2,10 @@ from django.contrib import admin
 
 # Register your models here.
 from django.contrib import admin
-from .models import payment, payment_Method
+from .models import UserPayments, PaymentMethod
 
-admin.site.register(payment_Method)
+admin.site.register(PaymentMethod)
 
 
-admin.site.register(payment)
+admin.site.register(UserPayments)
 
