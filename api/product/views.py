@@ -1,14 +1,20 @@
+from rest_framework import status
+from django.core.exceptions import ObjectDoesNotExist
 from rest_framework import viewsets
 from .models import Product, ProductDetails, Color, Size, feedback
-from .serializers import ProductSerializer, ProductDetailsSerializer, ColorSerializer, SizeSerializer, FeedBackSerializer
+from .serializers import ProductSerializer, ProductDetailsSerializer, ColorSerializer, SizeSerializer, \
+    FeedBackSerializer
 from rest_framework.permissions import AllowAny
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.forms.models import model_to_dict
 import json
 from ..policies import customPermission
-from .models import Product, ProductDetails, Color, Size, Material, Type, ProductMaterials, ProductTypes,product_config, product_details_config, color_config, product_colors_config, size_config, product_sizes_config, material_config, product_materials_config, type_config, product_types_config
+from .models import Product, ProductDetails, Color, Size, Material, Type, ProductMaterials, ProductTypes, \
+    product_config, product_details_config, color_config, product_colors_config, size_config, product_sizes_config, \
+    material_config, product_materials_config, type_config, product_types_config
 from ..utils import Obj, Int, UUIDEncoder
+
 
 # ViewSet for Product
 class ProductViewSet(viewsets.ModelViewSet):
@@ -16,11 +22,13 @@ class ProductViewSet(viewsets.ModelViewSet):
     serializer_class = ProductSerializer
     permission_classes = [AllowAny]
 
+
 # ViewSet for ProductDetails
 class ProductDetailsViewSet(viewsets.ModelViewSet):
     queryset = ProductDetails.objects.all()
     serializer_class = ProductDetailsSerializer
     permission_classes = [AllowAny]
+
 
 # ViewSet for Color
 class ColorViewSet(viewsets.ModelViewSet):
@@ -28,16 +36,19 @@ class ColorViewSet(viewsets.ModelViewSet):
     serializer_class = ColorSerializer
     permission_classes = [AllowAny]
 
+
 # ViewSet for Size
 class SizeViewSet(viewsets.ModelViewSet):
     queryset = Size.objects.all()
     serializer_class = SizeSerializer
     permission_classes = [AllowAny]
-    
+
+
 class feedback_viewset(viewsets.ModelViewSet):
     queryset = feedback.objects.all()
     serializer_class = FeedBackSerializer
     permission_classes = [AllowAny]
+
 
 # --------- PRODUCT ---------
 @csrf_exempt
@@ -74,8 +85,8 @@ def add_product(request):
             })
         else:
             # found product by name
-            found_products = Product.objects.filter(name__iexact = product_name).first() or {}
-            if(found_products != {}):
+            found_products = Product.objects.filter(name__iexact=product_name).first() or {}
+            if (found_products != {}):
                 # Parse to dict
                 found_products = model_to_dict(found_products)
                 # Validate product
@@ -83,13 +94,13 @@ def add_product(request):
                     return JsonResponse({
                         'code': -1,
                         'message': "Product name is exited"
-                })
+                    })
         # Validate product price
         if not isinstance(product_price, (int, float)):
-                return JsonResponse({
-                    'code': -1,
-                    'message': "Product price is required or must be a number"
-                })
+            return JsonResponse({
+                'code': -1,
+                'message': "Product price is required or must be a number"
+            })
         else:
             if product_price < 0:
                 return JsonResponse({
@@ -104,7 +115,7 @@ def add_product(request):
                     'code': -1,
                     'message': "Status value does not support"
                 })
-        else:    
+        else:
             product_status = product_config.get('status').get('ACTIVE')
         #  Validate type
         validated_types = {}
@@ -115,15 +126,17 @@ def add_product(request):
                     'code': -1,
                     'message': "Duplicate product type value"
                 })
-            found_type = Type.objects.get(id = type)
-            if model_to_dict(found_type) == {}:
+            try:
+                # Assume `type` is passed in the request data
+                found_type = Type.objects.get(id=type)
+            except ObjectDoesNotExist:
                 return JsonResponse({
                     'code': -1,
                     'message': "Invalid type value"
-                })
+                }, status=400)
             types_name.append(model_to_dict(found_type).get('name', ''))
             validated_types[type] = found_type
-        # Validate material 
+        # Validate material
         validated_materials = {}
         materials_name = []
         for material in product_materials:
@@ -132,15 +145,17 @@ def add_product(request):
                     'code': -1,
                     'message': "Duplicate product material value"
                 })
-            found_material = Material.objects.get(id = material)
-            if model_to_dict(found_material) == {}:
+            try:
+                # Assume `type` is passed in the request data
+                found_material = Material.objects.get(id=material)
+            except ObjectDoesNotExist:
                 return JsonResponse({
                     'code': -1,
                     'message': "Invalid material value"
-                })
+                }, status=400)
             materials_name.append(model_to_dict(found_material).get('name', ''))
             validated_materials[material] = found_material
-        # Validate product details 
+        # Validate product details
         validated_details = []
         validated_color = {}
         validated_size = {}
@@ -154,19 +169,23 @@ def add_product(request):
                     'message': "Duplicate product details value"
                 })
             # Validate color
-            found_color = Color.objects.get(id = color_id)
-            if model_to_dict(found_color) == {}:
+            try:
+                # Assume `type` is passed in the request data
+                found_color = Color.objects.get(id=color_id)
+            except ObjectDoesNotExist:
                 return JsonResponse({
                     'code': -1,
                     'message': "Color not found or missing value"
-                })
+                }, status=400)
             # Validate size
-            found_size = Size.objects.get(id = size_id)
-            if model_to_dict(found_size) == {}:
+            try:
+                # Assume `type` is passed in the request data
+                found_size = Size.objects.get(id=size_id)
+            except ObjectDoesNotExist:
                 return JsonResponse({
-                    'code': -1,
+                     'code': -1,
                     'message': "Size not found or missing value"
-                })
+                }, status=400)
             # Validate qty
             if not isinstance(qty, int):
                 return JsonResponse({
@@ -176,21 +195,21 @@ def add_product(request):
             else:
                 if qty < 0:
                     return JsonResponse({
-                    'code': -1,
-                    'message': "Qty must be positive integer"
-                })
+                        'code': -1,
+                        'message': "Qty must be positive integer"
+                    })
             validated_details.append(f'{color_id}-{size_id}')
             validated_color[color_id] = found_color
             validated_size[size_id] = found_size
         # Go create product
         create_product = Product.objects.create(
-            name = product_name,
-            price = product_price,
-            status = product_status,
-            description = product_description,
+            name=product_name,
+            price=product_price,
+            status=product_status,
+            description=product_description,
         )
         product_info = model_to_dict(create_product)
-        # Go create product details 
+        # Go create product details
         created_product_details = []
         for detail in product_details:
             color_id = detail.get('color', '')
@@ -198,24 +217,24 @@ def add_product(request):
             qty = detail.get('qty', 0)
             #  create
             create_product_details = ProductDetails.objects.create(
-                product = create_product,
-                color = validated_color.get(color_id),
-                size = validated_size.get(size_id),
-                qty = qty
+                product=create_product,
+                color=validated_color.get(color_id),
+                size=validated_size.get(size_id),
+                qty=qty
             )
             # add ro list
             created_product_details.append({
-                    **model_to_dict(create_product_details),
-                    "color": model_to_dict(validated_color.get(color_id)).get('name'),
-                    "size": model_to_dict(validated_size.get(size_id)).get('name')
-                })
+                **model_to_dict(create_product_details),
+                "color": model_to_dict(validated_color.get(color_id)).get('name'),
+                "size": model_to_dict(validated_size.get(size_id)).get('name')
+            })
         # Create product materials
         created_product_materials = []
         for material in product_materials:
             #  create
             create_product_materials = ProductMaterials.objects.create(
-                product = create_product,
-                material = validated_materials.get(material)
+                product=create_product,
+                material=validated_materials.get(material)
             )
             # add ro list
             created_product_materials.append(model_to_dict(create_product_materials))
@@ -224,27 +243,28 @@ def add_product(request):
         for type in product_types:
             #  create
             create_product_types = ProductTypes.objects.create(
-                product = create_product,
-                type = validated_types.get(type)
+                product=create_product,
+                type=validated_types.get(type)
             )
             # add ro list
             created_product_types.append(model_to_dict(create_product_types))
         return JsonResponse({
-                'code': 0,
-                'message': "Create product successfully",
-                'data':{
-                    **product_info,
-                    "details": created_product_details,
-                    "type": types_name,
-                    "material": materials_name
-                }
-            })
-    except LookupError :
+            'code': 0,
+            'message': "Create product successfully",
+            'data': {
+                **product_info,
+                "details": created_product_details,
+                "type": types_name,
+                "material": materials_name
+            }
+        })
+    except LookupError:
         return JsonResponse({
             'code': -1,
             'message': LookupError.__doc__
         })
-    
+
+
 @csrf_exempt
 def edit_product(request):
     if not request.method == 'PUT':
@@ -272,25 +292,28 @@ def edit_product(request):
             return JsonResponse({
                 'code': -1,
                 'message': "User dont't have permission to access this action"
-            })
+            },status = 403)
         # Validate product by id
         if product_id == '':
             return JsonResponse({
-                    'code': -1,
-                    'message': "id is required"
-                })
-        found_product = Product.objects.get(id = product_id) or {}
-        if found_product == {}:
+                'code': -1,
+                'message': "id is required"
+            },status = 400)
+        found_product = None
+        try:
+            # Assume `type` is passed in the request data
+            found_product = Product.objects.get(id=product_id)
+        except ObjectDoesNotExist:
             return JsonResponse({
-                    'code': -1,
-                    'message': "Product not found"
-                })
+                'code': -1,
+                'message': "Product not found"
+            }, status=400)
         # Init prepared_product_update
         prepared_product_update = {}
         # Go validate product field
         if product_name != '':
             # found product by name
-            found_products = Product.objects.filter(name__iexact = product_name).first() or {}
+            found_products = Product.objects.filter(name__iexact=product_name).first() or {}
             if found_products != {}:
                 # parse found_products
                 found_products = model_to_dict(found_products)
@@ -298,7 +321,7 @@ def edit_product(request):
                     return JsonResponse({
                         'code': -1,
                         'message': f'Product {product_name} is existed'
-                    })
+                    },status = 400)
             prepared_product_update['name'] = product_name
         # Validate product price
         if product_price != '':
@@ -306,13 +329,13 @@ def edit_product(request):
                 return JsonResponse({
                     'code': -1,
                     'message': "Product must be a number"
-                })
+                },status = 400)
             else:
                 if product_price < 0:
                     return JsonResponse({
                         'code': -1,
                         'message': "Product price must be positive integer"
-                    })
+                    },status = 400)
             # parse float product price
             prepared_product_update['price'] = float(product_price)
         # Validate product status
@@ -321,7 +344,7 @@ def edit_product(request):
                 return JsonResponse({
                     'code': -1,
                     'message': "Status value does not support"
-                })
+                },status = 400)
             prepared_product_update['status'] = product_status
         # Product description
         if product_description != '':
@@ -332,7 +355,7 @@ def edit_product(request):
         product_types_name = {}
         # Go found all product
         if not Obj.is_empty(add_product_types) or not Obj.is_empty(delete_product_types):
-            found_all_product_types = list(ProductTypes.objects.filter(product = product_id).select_related('type'))
+            found_all_product_types = list(ProductTypes.objects.filter(product=product_id).select_related('type'))
             # parse all
             for product_type in found_all_product_types:
                 tmp_dict = model_to_dict(product_type)
@@ -348,14 +371,16 @@ def edit_product(request):
                     return JsonResponse({
                         'code': -1,
                         'message': "Type is duplicated"
-                    })
+                    },status = 400)
                 # Go found type
-                found_type = Type.objects.get(id = type) or {}
-                if found_type == {}:
+                try:
+                    # Assume `type` is passed in the request data
+                    found_type = Type.objects.get(id=type)
+                except ObjectDoesNotExist:
                     return JsonResponse({
                         'code': -1,
                         'message': "Type not found"
-                    })
+                    }, status=400)
                 existed_product_types.append(type)
                 valided_add_type[type] = found_type
                 product_types_name[type] = model_to_dict(found_type).get('name')
@@ -367,7 +392,7 @@ def edit_product(request):
                     return JsonResponse({
                         'code': -1,
                         'message': "This product type not exited"
-                    })
+                    },status = 400)
                 product_types_name.pop(type)
         # Validate material
         existed_product_materials = []
@@ -375,7 +400,8 @@ def edit_product(request):
         product_materials_name = {}
         # Go found all product
         if not Obj.is_empty(add_product_materials) or not Obj.is_empty(delete_product_materials):
-            found_all_product_materials = list(ProductMaterials.objects.filter(product = product_id).select_related('material'))
+            found_all_product_materials = list(
+                ProductMaterials.objects.filter(product=product_id).select_related('material'))
             # parse all
             for product_material in found_all_product_materials:
                 tmp_material = model_to_dict(product_material.material)
@@ -391,14 +417,16 @@ def edit_product(request):
                     return JsonResponse({
                         'code': -1,
                         'message': "Material is duplicated"
-                    })
+                    },status = 400)
                 # Go found material
-                found_material = Material.objects.get(id = material) or {}
-                if found_material == {}:
+                try:
+                    # Assume `type` is passed in the request data
+                    found_material = Material.objects.get(id=material)
+                except ObjectDoesNotExist:
                     return JsonResponse({
                         'code': -1,
                         'message': "Material not found"
-                    })
+                    }, status=400)
                 existed_product_materials.append(material)
                 valided_add_material[material] = found_material
                 product_materials_name[material] = model_to_dict(found_material).get('name')
@@ -411,51 +439,51 @@ def edit_product(request):
                     return JsonResponse({
                         'code': -1,
                         'message': "This product material not exited"
-                    })
+                    },status = 400)
                 product_materials_name.pop(material)
         # Go update all value
-        if (Obj.is_empty(prepared_product_update) 
-            and Obj.is_empty(add_product_types)
-            and Obj.is_empty(delete_product_types)
-            and Obj.is_empty(add_product_materials)
-            and Obj.is_empty(delete_product_materials)):
+        if (Obj.is_empty(prepared_product_update)
+                and Obj.is_empty(add_product_types)
+                and Obj.is_empty(delete_product_types)
+                and Obj.is_empty(add_product_materials)
+                and Obj.is_empty(delete_product_materials)):
             return JsonResponse({
-                        'code': -1,
-                        'message': "Don't have value to update"
-                    })
+                'code': -1,
+                'message': "Don't have value to update"
+            },status = 400)
         # Go add more product type info
         if not Obj.is_empty(add_product_types):
             for type in add_product_types:
                 ProductTypes.objects.create(
-                    product = found_product,
-                    type = valided_add_type.get(type)
+                    product=found_product,
+                    type=valided_add_type.get(type)
                 )
         # delete product type
         if not Obj.is_empty(delete_product_types):
             for type in delete_product_types:
                 ProductTypes.objects.filter(
-                    product = product_id,
-                    type = type
+                    product=product_id,
+                    type=type
                 ).delete()
         # Go add more product material info
         if not Obj.is_empty(add_product_materials):
             for material in add_product_materials:
                 ProductMaterials.objects.create(
-                    product = found_product,
-                    material = valided_add_material.get(material)
+                    product=found_product,
+                    material=valided_add_material.get(material)
                 )
         # delete product material
         if not Obj.is_empty(delete_product_materials):
             for material in delete_product_materials:
                 ProductMaterials.objects.filter(
-                    product = product_id,
-                    material = material
+                    product=product_id,
+                    material=material
                 ).delete()
         # Go update product info
         if not Obj.is_empty(prepared_product_update):
-            Product.objects.filter(id = product_id).update(**prepared_product_update)
+            Product.objects.filter(id=product_id).update(**prepared_product_update)
         # Get product info after update
-        product_info = Product.objects.filter(id = product_id).first() or {}
+        product_info = Product.objects.filter(id=product_id).first() or {}
         product_info = model_to_dict(product_info)
         # parse to list
         if Obj.is_empty(product_types_name):
@@ -467,19 +495,20 @@ def edit_product(request):
         else:
             product_materials_name = list(product_materials_name.values())
         return JsonResponse({
-                'code': 0,
-                'message': "Create product successfully",
-                'data':{
-                    **product_info,
-                    "type": product_types_name,
-                    "material": product_materials_name
-                }
-            })
-    except LookupError :
+            'code': 0,
+            'message': "Create product successfully",
+            'data': {
+                **product_info,
+                "type": product_types_name,
+                "material": product_materials_name
+            }
+        })
+    except LookupError:
         return JsonResponse({
             'code': -1,
             'message': LookupError.__doc__
         })
+
 
 @csrf_exempt
 def product_info(request):
@@ -501,15 +530,15 @@ def product_info(request):
             return JsonResponse({
                 'code': -1,
                 'message': "Product id is required"
-            })
+            },status = 400)
         # Go found product
-        found_product = Product.objects.filter(id = product_id).first() or {}
+        found_product = Product.objects.filter(id=product_id).first() or {}
         # Throw error if product not found
         if found_product == {}:
             return JsonResponse({
                 'code': -1,
                 'message': "Product not found"
-            })
+            },status = 400)
         # parse to dict
         found_product = model_to_dict(found_product)
         # Init prepared product details
@@ -520,7 +549,8 @@ def product_info(request):
         if not is_admin:
             prepared_product_details['status__in'] = [product_details_config.get('status').get('ACTIVE')]
         # Go found product details
-        found_product_details =  ProductDetails.objects.filter(**prepared_product_details).select_related('size', 'color') or {}
+        found_product_details = ProductDetails.objects.filter(**prepared_product_details).select_related('size',
+                                                                                                         'color') or {}
         # Parse to list
         found_product_details = list(found_product_details)
         parsed_product_details = []
@@ -548,19 +578,20 @@ def product_info(request):
             total_qty += tmp_product_detail_qty
         # Return resp
         return JsonResponse({
-                'code': 0,
-                'message': "Get product info successfully",
-                'data': {
-                    **found_product,
-                    'totalQty': total_qty,
-                    'details': parsed_product_details
-                }
-            })
-    except LookupError :
+            'code': 0,
+            'message': "Get product info successfully",
+            'data': {
+                **found_product,
+                'totalQty': total_qty,
+                'details': parsed_product_details
+            }
+        })
+    except LookupError:
         return JsonResponse({
             'code': -1,
             'message': LookupError.__doc__
         })
+
 
 @csrf_exempt
 def get_list_product(request):
@@ -592,7 +623,7 @@ def get_list_product(request):
             is_admin = customPermission.is_role_admin(request, token)
         # Init preparedQuery
         preparedQuery = {}
-         # Detect to only active product if user is not admin
+        # Detect to only active product if user is not admin
         if not is_admin:
             preparedQuery['status__in'] = [product_details_config.get('status').get('ACTIVE')]
         else:
@@ -601,27 +632,26 @@ def get_list_product(request):
                     return JsonResponse({
                         'code': -1,
                         'message': "Status value does not support"
-                    })
+                    },status = 400)
                 preparedQuery['status'] = product_status
         if product_id != '':
             preparedQuery['id'] = product_id,
         if product_name != '':
             preparedQuery['name__icontains'] = product_name,
         if product_from_price != '':
-            # safe parse
-            product_from_price = float(product_from_price)
-            if not isinstance(product_from_price, (int, float)):
-                return JsonResponse({
-                    'code': -1,
-                    'message': "Product price must be a number"
-                })
-            else:
+            try:
+                product_from_price = float(product_from_price)
                 if product_from_price < 0:
                     return JsonResponse({
                         'code': -1,
-                        'message': "Product price must be positive integer"
-                    })
-            preparedQuery['price__gte'] = product_from_price
+                        'message': "Product price must be a positive integer"
+                    },status = 400)
+                preparedQuery['price__gte'] = product_from_price
+            except ValueError:
+                return JsonResponse({
+                    'code': -1,
+                    'message': "Product price must be a number"
+                },status = 400)
         if product_to_price != '':
             # safe parse
             product_to_price = float(product_to_price)
@@ -642,17 +672,17 @@ def get_list_product(request):
         if not Obj.is_empty(product_types):
             # Loop go found ProductTypes
             found_product_types = ProductTypes.objects.filter(
-                type__in = product_types
+                type__in=product_types
             ).values('product')
             # parse to list
             found_product_types = list(found_product_types)
             for product_type in found_product_types:
                 product_types_ids.append(str(product_type.get('product')))
-        
+
         if not Obj.is_empty(product_materials):
             # Loop go found ProductMaterials
             found_product_materials = ProductMaterials.objects.filter(
-                material__in = product_materials
+                material__in=product_materials
             ).values('product')
             # parse to list
             found_product_materials = list(found_product_materials)
@@ -670,8 +700,8 @@ def get_list_product(request):
                 if not Obj.is_empty(product_types) and not Obj.is_empty(product_materials):
                     product_ids = set(product_types_ids).intersection(product_materials_ids)
         # Add product id to prepared query
-        if (not Obj.is_empty(product_types) or 
-            not Obj.is_empty(product_materials)
+        if (not Obj.is_empty(product_types) or
+                not Obj.is_empty(product_materials)
         ):
             preparedQuery['id__in'] = product_ids
         found_products = Product.objects.filter(**preparedQuery)
@@ -681,20 +711,21 @@ def get_list_product(request):
         found_products = list(found_products.values()[offset:offset + limit])
         # Return resp
         return JsonResponse({
-                'code': 0,
-                'message': "Get list product successfully",
-                'data': found_products,
-                'pagination': {
-                    'page': page,
-                    'limit': limit,
-                    'total': total_count
-                },
-            })        
-    except LookupError :
+            'code': 0,
+            'message': "Get list product successfully",
+            'data': found_products,
+            'pagination': {
+                'page': page,
+                'limit': limit,
+                'total': total_count
+            },
+        })
+    except LookupError:
         return JsonResponse({
             'code': -1,
             'message': LookupError.__doc__
         })
+
 
 # --------- DETAILS ---------
 @csrf_exempt
@@ -718,14 +749,14 @@ def add_product_details(request):
                 'message': "User dont't have permission to access this action"
             })
         # Validate product id
-        found_product = Product.objects.filter(id = product_id).first() or {}
+        found_product = Product.objects.filter(id=product_id).first() or {}
         if found_product == {}:
             return JsonResponse({
-                    'code': -1,
-                    'message': "Product not found"
-                })
+                'code': -1,
+                'message': "Product not found"
+            })
         # Find all product details
-        found_product_details = ProductDetails.objects.filter(product = product_id)
+        found_product_details = ProductDetails.objects.filter(product=product_id)
         # Validate product details
         validated_details = []
         # Parse to list
@@ -746,14 +777,14 @@ def add_product_details(request):
                     'message': "Duplicate product details value or details existed"
                 })
             # Validate color
-            found_color = Color.objects.filter(id = color_id).first() or {}
+            found_color = Color.objects.filter(id=color_id).first() or {}
             if found_color == {}:
                 return JsonResponse({
                     'code': -1,
                     'message': "Color not found or missing value"
                 })
             # Validate size
-            found_size = Size.objects.filter(id = size_id).first() or {}
+            found_size = Size.objects.filter(id=size_id).first() or {}
             if found_size == {}:
                 return JsonResponse({
                     'code': -1,
@@ -768,11 +799,11 @@ def add_product_details(request):
             else:
                 if qty < 0:
                     return JsonResponse({
-                    'code': -1,
-                    'message': "Qty must be positive integer"
-                })
+                        'code': -1,
+                        'message': "Qty must be positive integer"
+                    })
             validated_details.append(f'{color_id}-{size_id}')
-        # Go create product details 
+        # Go create product details
         created_product_details = []
         for detail in product_details:
             color_id = detail.get('color', '')
@@ -780,24 +811,25 @@ def add_product_details(request):
             qty = detail.get('qty', 0)
             #  create
             create_product_details = ProductDetails.objects.create(
-                product = product_id,
-                color = color_id,
-                size = size_id,
-                qty = qty
+                product=product_id,
+                color=color_id,
+                size=size_id,
+                qty=qty
             )
             # add ro list
             created_product_details.append(model_to_dict(create_product_details))
         return JsonResponse({
-                'code': 0,
-                'message': "Create product details successfully",
-                "data": created_product_details
-            })
-    except LookupError :
+            'code': 0,
+            'message': "Create product details successfully",
+            "data": created_product_details
+        })
+    except LookupError:
         return JsonResponse({
             'code': -1,
             'message': LookupError.__doc__
         })
-    
+
+
 def edit_product_details(request):
     if not request.method == 'PUT':
         return JsonResponse({'error': 'Send a valid PUT request'})
@@ -819,13 +851,13 @@ def edit_product_details(request):
                 'message': "User dont't have permission to access this action"
             })
         # Validate product details id
-        found_product_details = ProductDetails.objects.filter(id = product_detail)
+        found_product_details = ProductDetails.objects.filter(id=product_detail)
         detect_product_details = found_product_details.first() or {}
         if detect_product_details == {}:
             return JsonResponse({
-                    'code': -1,
-                    'message': "Product details not found"
-                })
+                'code': -1,
+                'message': "Product details not found"
+            })
         # Init prepared update
         prepared_update = {}
         # Validate qty
@@ -838,35 +870,35 @@ def edit_product_details(request):
             else:
                 if product_details_qty < 0:
                     return JsonResponse({
-                    'code': -1,
-                    'message': "Qty must be positive integer"
-                })
-            prepared_update['qty'] =  product_details_qty
+                        'code': -1,
+                        'message': "Qty must be positive integer"
+                    })
+            prepared_update['qty'] = product_details_qty
         if product_details_status != '':
             if not product_details_status in list(product_details_config.get('status', {}).values()):
-                    return JsonResponse({
-                        'code': -1,
-                        'message': "Status value does not support"
-                    })
-            prepared_update['status'] =  product_details_status
+                return JsonResponse({
+                    'code': -1,
+                    'message': "Status value does not support"
+                })
+            prepared_update['status'] = product_details_status
         #  Go update
-        found_product_details.update(prepared_update)
+        found_product_details.update(**prepared_update)
         # Find all product details
-        after_update_product_details = ProductDetails.objects.filter(id = product_detail)
+        after_update_product_details = ProductDetails.objects.filter(id=product_detail)
         # Go convert to object
         product_details_info = model_to_dict(after_update_product_details)
         return JsonResponse({
-                'code': 0,
-                'message': "Update product details successfully",
-                "data": product_details_info
-            })
-    except LookupError :
+            'code': 0,
+            'message': "Update product details successfully",
+            "data": product_details_info
+        })
+    except LookupError:
         return JsonResponse({
             'code': -1,
             'message': LookupError.__doc__
         })
 
-     
+
 # --------- COLOR ---------
 @csrf_exempt
 def add_color(request):
@@ -895,7 +927,7 @@ def add_color(request):
             })
         else:
             # Validate existed color
-            found_color = Color.objects.filter(name__iexact = color_name).first() or {}
+            found_color = Color.objects.filter(name__iexact=color_name).first() or {}
             if found_color != {}:
                 return JsonResponse({
                     'code': -1,
@@ -907,25 +939,26 @@ def add_color(request):
                     'code': -1,
                     'message': "Status value does not support"
                 })
-        else:    
+        else:
             color_status = color_config.get('status').get('ACTIVE')
         # Go create color
         create_color = Color.objects.create(
-            name = color_name,
-            status = color_status
+            name=color_name,
+            status=color_status
         )
         # Parse to dict
         create_color = model_to_dict(create_color)
         return JsonResponse({
-                'code': 0,
-                'message': "Create color successfully",
-                'data': create_color
-            })
-    except LookupError :
+            'code': 0,
+            'message': "Create color successfully",
+            'data': create_color
+        })
+    except LookupError:
         return JsonResponse({
             'code': -1,
             'message': LookupError.__doc__
         })
+
 
 @csrf_exempt
 def get_list_color(request):
@@ -942,26 +975,28 @@ def get_list_color(request):
     page = int(params_value.get('page', 0))
     limit = int(params_value.get('limit', 10))
     offset = page * limit
+    # init is admin
+    is_admin = False
     try:
-        # Validate authen
-        if not customPermission.is_role_admin(request, token):
-            return JsonResponse({
-                'code': -1,
-                'message': "User dont't have permission to access this action"
-            })
-        # prepared query
+        # Set is admin if had token
+        if token != '':
+            is_admin = customPermission.is_role_admin(request, token)
+        # Init preparedQuery
         prepared_query = {}
+        # Detect to only active color if user is not admin
+        if not is_admin:
+            prepared_query['status__in'] = [product_details_config.get('status').get('ACTIVE')]
+        else:
+            if color_status != '':
+                if not color_status in list(color_config.get('status', {}).values()):
+                    return JsonResponse({
+                        'code': -1,
+                        'message': "Status value does not support"
+                    })
+                prepared_query['status'] = color_status
         # Validate name
         if color_name != '':
             prepared_query['name__icontains'] = color_name
-        # Validate status
-        if color_status != '':
-            if not color_status in list(color_config.get('status', {}).values()):
-                return JsonResponse({
-                    'code': -1,
-                    'message': "Status value does not support"
-                })
-            prepared_query['status'] = color_status
         # Go filter
         found_colors = Color.objects.filter(**prepared_query)
         # Count total
@@ -978,12 +1013,13 @@ def get_list_color(request):
             },
             'message': "Get list color successfully"
         })
-    except LookupError :
+    except LookupError:
         return JsonResponse({
             'code': -1,
             'message': LookupError.__doc__
         })
-    
+
+
 @csrf_exempt
 def edit_color(request):
     if not request.method == 'PUT':
@@ -991,7 +1027,7 @@ def edit_color(request):
     # Get header value
     header_value = request.headers or {}
     token = header_value.get('Authorization', '')
-   # Get body value
+    # Get body value
     raw_data = request.body.decode('utf-8')
     data = json.loads(raw_data)
     color_id = data.get('id', '')
@@ -1017,7 +1053,7 @@ def edit_color(request):
         where['id'] = color_id
         # Validate name
         if color_name != '':
-            found_color = Color.objects.filter(name__iexact = color_name).first() or {}
+            found_color = Color.objects.filter(name__iexact=color_name).first() or {}
             if found_color != {}:
                 # parse found_size
                 found_color = model_to_dict(found_color)
@@ -1027,7 +1063,7 @@ def edit_color(request):
                         'message': f'Color {color_name} is existed'
                     })
             prepared_update['name'] = color_name
-        
+
         # Validate status
         if color_status != '':
             if not color_status in list(color_config.get('status', {}).values()):
@@ -1036,8 +1072,8 @@ def edit_color(request):
                     'message': "Status value does not support"
                 })
             prepared_update['status'] = color_status
-        # Validate prepared update 
-        if(Obj.is_empty(prepared_update)):
+        # Validate prepared update
+        if (Obj.is_empty(prepared_update)):
             return JsonResponse({
                 'code': -1,
                 'message': "Don't have data to update"
@@ -1051,7 +1087,7 @@ def edit_color(request):
                 'message': "Color not found"
             })
         #  Go update
-        found_color.update(prepared_update)
+        found_colors.update(**prepared_update)
         # Get user value after update
         after_update_color = Color.objects.filter(**where).first()
         # Go convert to object
@@ -1062,11 +1098,12 @@ def edit_color(request):
             'data': color_info,
             'message': "Update color successfully"
         })
-    except LookupError :
+    except LookupError:
         return JsonResponse({
             'code': -1,
             'message': LookupError.__doc__
         })
+
 
 # ------------------------
 # --------- SIZE ---------
@@ -1098,7 +1135,7 @@ def add_size(request):
             })
         else:
             # Validate existed size
-            found_size = Size.objects.filter(name__iexact = size_name).first() or {}
+            found_size = Size.objects.filter(name__iexact=size_name).first() or {}
             if found_size != {}:
                 return JsonResponse({
                     'code': -1,
@@ -1110,25 +1147,26 @@ def add_size(request):
                     'code': -1,
                     'message': "Status value does not support"
                 })
-        else:    
+        else:
             size_status = size_config.get('status').get('ACTIVE')
         # Go create size
         create_size = Size.objects.create(
-            name = size_name,
-            status = size_status
+            name=size_name,
+            status=size_status
         )
         # Parse to dict
         create_size = model_to_dict(create_size)
         return JsonResponse({
-                'code': 0,
-                'message': "Create size successfully",
-                'data': create_size
-            })
-    except LookupError :
+            'code': 0,
+            'message': "Create size successfully",
+            'data': create_size
+        })
+    except LookupError:
         return JsonResponse({
             'code': -1,
             'message': LookupError.__doc__
         })
+
 
 @csrf_exempt
 def get_list_size(request):
@@ -1145,26 +1183,28 @@ def get_list_size(request):
     page = int(params_value.get('page', 0))
     limit = int(params_value.get('limit', 10))
     offset = page * limit
+    # init is admin
+    is_admin = False
     try:
-        # Validate authen
-        if not customPermission.is_role_admin(request, token):
-            return JsonResponse({
-                'code': -1,
-                'message': "User dont't have permission to access this action"
-            })
-        # prepared query
+        # Set is admin if had token
+        if token != '':
+            is_admin = customPermission.is_role_admin(request, token)
+        # Init preparedQuery
         prepared_query = {}
+        # Detect to only active size if user is not admin
+        if not is_admin:
+            prepared_query['status__in'] = [product_details_config.get('status').get('ACTIVE')]
+        else:
+            if size_status != '':
+                if not size_status in list(size_config.get('status', {}).values()):
+                    return JsonResponse({
+                        'code': -1,
+                        'message': "Status value does not support"
+                    })
+                prepared_query['status'] = size_status
         # Validate name
         if size_name != '':
             prepared_query['name__icontains'] = size_name
-        # Validate status
-        if size_status != '':
-            if not size_status in list(size_config.get('status', {}).values()):
-                return JsonResponse({
-                    'code': -1,
-                    'message': "Status value does not support"
-                })
-            prepared_query['status'] = size_status
         # Go filter
         found_sizes = Size.objects.filter(**prepared_query)
         # Count total
@@ -1181,11 +1221,12 @@ def get_list_size(request):
             },
             'message': "Get list size successfully"
         })
-    except LookupError :
+    except LookupError:
         return JsonResponse({
             'code': -1,
             'message': LookupError.__doc__
         })
+
 
 @csrf_exempt
 def edit_size(request):
@@ -1194,7 +1235,7 @@ def edit_size(request):
     # Get header value
     header_value = request.headers or {}
     token = header_value.get('Authorization', '')
-   # Get body value
+    # Get body value
     raw_data = request.body.decode('utf-8')
     data = json.loads(raw_data)
     size_id = data.get('id', '')
@@ -1220,7 +1261,7 @@ def edit_size(request):
         where['id'] = size_id
         # Validate name
         if size_name != '':
-            found_size = Size.objects.filter(name__iexact = size_name).first() or {}
+            found_size = Size.objects.filter(name__iexact=size_name).first() or {}
             if found_size != {}:
                 # parse found_size
                 found_size = model_to_dict(found_size)
@@ -1238,8 +1279,8 @@ def edit_size(request):
                     'message': "Status value does not support"
                 })
             prepared_update['status'] = size_status
-        # Validate prepared update 
-        if(Obj.is_empty(prepared_update)):
+        # Validate prepared update
+        if (Obj.is_empty(prepared_update)):
             return JsonResponse({
                 'code': -1,
                 'message': "Don't have data to update"
@@ -1253,7 +1294,7 @@ def edit_size(request):
                 'message': "Size not found"
             })
         #  Go update
-        found_size.update(prepared_update)
+        found_sizes.update(**prepared_update)
         # Get user value after update
         after_update_size = Size.objects.filter(**where).first()
         # Go convert to object
@@ -1264,11 +1305,13 @@ def edit_size(request):
             'data': size_info,
             'message': "Update size successfully"
         })
-    except LookupError :
+    except LookupError:
         return JsonResponse({
             'code': -1,
             'message': LookupError.__doc__
         })
+
+
 # -----------------------------
 # --------- Materials ---------
 # -----------------------------
@@ -1300,7 +1343,7 @@ def add_material(request):
             })
         else:
             # Validate existed material
-            found_material = Material.objects.filter(name__iexact = material_name).first() or {}
+            found_material = Material.objects.filter(name__iexact=material_name).first() or {}
             if found_material != {}:
                 return JsonResponse({
                     'code': -1,
@@ -1312,25 +1355,26 @@ def add_material(request):
                     'code': -1,
                     'message': "Status value does not support"
                 })
-        else:    
+        else:
             material_status = material_config.get('status').get('ACTIVE')
         # Go create material
         create_material = Material.objects.create(
-            name = material_name,
-            status = material_status
+            name=material_name,
+            status=material_status
         )
         # Parse to dict
         create_material = model_to_dict(create_material)
         return JsonResponse({
-                'code': 0,
-                'message': "Create material successfully",
-                'data': create_material
-            })
-    except LookupError :
+            'code': 0,
+            'message': "Create material successfully",
+            'data': create_material
+        })
+    except LookupError:
         return JsonResponse({
             'code': -1,
             'message': LookupError.__doc__
         })
+
 
 @csrf_exempt
 def get_list_material(request):
@@ -1347,26 +1391,28 @@ def get_list_material(request):
     page = int(params_value.get('page', 0))
     limit = int(params_value.get('limit', 10))
     offset = page * limit
+    # init is admin
+    is_admin = False
     try:
-        # Validate authen
-        if not customPermission.is_role_admin(request, token):
-            return JsonResponse({
-                'code': -1,
-                'message': "User dont't have permission to access this action"
-            })
-        # prepared query
+        # Set is admin if had token
+        if token != '':
+            is_admin = customPermission.is_role_admin(request, token)
+        # Init preparedQuery
         prepared_query = {}
+        # Detect to only active material if user is not admin
+        if not is_admin:
+            prepared_query['status__in'] = [product_details_config.get('status').get('ACTIVE')]
+        else:
+            if material_status != '':
+                if not material_status in list(material_config.get('status', {}).values()):
+                    return JsonResponse({
+                        'code': -1,
+                        'message': "Status value does not support"
+                    })
+                prepared_query['status'] = material_status
         # Validate name
         if material_name != '':
             prepared_query['name__icontains'] = material_name
-        # Validate status
-        if material_status != '':
-            if not material_status in list(material_config.get('status', {}).values()):
-                return JsonResponse({
-                    'code': -1,
-                    'message': "Status value does not support"
-                })
-            prepared_query['status'] = material_status
         # Go filter
         found_materials = Material.objects.filter(**prepared_query)
         # Count total
@@ -1383,11 +1429,12 @@ def get_list_material(request):
             },
             'message': "Get list material successfully"
         })
-    except LookupError :
+    except LookupError:
         return JsonResponse({
             'code': -1,
             'message': LookupError.__doc__
         })
+
 
 @csrf_exempt
 def edit_material(request):
@@ -1396,7 +1443,7 @@ def edit_material(request):
     # Get header value
     header_value = request.headers or {}
     token = header_value.get('Authorization', '')
-   # Get body value
+    # Get body value
     raw_data = request.body.decode('utf-8')
     data = json.loads(raw_data)
     material_id = data.get('id', '')
@@ -1422,7 +1469,7 @@ def edit_material(request):
         where['id'] = material_id
         # Validate name
         if material_name != '':
-            found_material = Material.objects.filter(name__iexact = material_name).first() or {}
+            found_material = Material.objects.filter(name__iexact=material_name).first() or {}
             if found_material != {}:
                 # parse found_size
                 found_material = model_to_dict(found_material)
@@ -1440,8 +1487,8 @@ def edit_material(request):
                     'message': "Status value does not support"
                 })
             prepared_update['status'] = material_status
-        # Validate prepared update 
-        if(Obj.is_empty(prepared_update)):
+        # Validate prepared update
+        if (Obj.is_empty(prepared_update)):
             return JsonResponse({
                 'code': -1,
                 'message': "Don't have data to update"
@@ -1455,7 +1502,7 @@ def edit_material(request):
                 'message': "Material not found"
             })
         #  Go update
-        found_material.update(prepared_update)
+        found_materials.update(**prepared_update)
         # Get user value after update
         after_update_material = Material.objects.filter(**where).first()
         # Go convert to object
@@ -1466,11 +1513,12 @@ def edit_material(request):
             'data': material_info,
             'message': "Update material successfully"
         })
-    except LookupError :
+    except LookupError:
         return JsonResponse({
             'code': -1,
             'message': LookupError.__doc__
         })
+
 
 # -------------------------
 # --------- Types ---------
@@ -1503,7 +1551,7 @@ def add_type(request):
             })
         else:
             # Validate existed type
-            found_type = Type.objects.filter(name__iexact = type_name).first() or {}
+            found_type = Type.objects.filter(name__iexact=type_name).first() or {}
             if found_type != {}:
                 return JsonResponse({
                     'code': -1,
@@ -1515,25 +1563,26 @@ def add_type(request):
                     'code': -1,
                     'message': "Status value does not support"
                 })
-        else:    
+        else:
             type_status = type_config.get('status').get('ACTIVE')
         # Go create type
         create_type = Type.objects.create(
-            name = type_name,
-            status = type_status
+            name=type_name,
+            status=type_status
         )
         # Parse to dict
         create_type = model_to_dict(create_type)
         return JsonResponse({
-                'code': 0,
-                'message': "Create type successfully",
-                'data': create_type
-            })
-    except LookupError :
+            'code': 0,
+            'message': "Create type successfully",
+            'data': create_type
+        })
+    except LookupError:
         return JsonResponse({
             'code': -1,
             'message': LookupError.__doc__
         })
+
 
 @csrf_exempt
 def get_list_type(request):
@@ -1550,15 +1599,25 @@ def get_list_type(request):
     page = int(params_value.get('page', 0))
     limit = int(params_value.get('limit', 10))
     offset = page * limit
+    # init is admin
+    is_admin = False
     try:
-        # Validate authen
-        if not customPermission.is_role_admin(request, token):
-            return JsonResponse({
-                'code': -1,
-                'message': "User dont't have permission to access this action"
-            })
-        # prepared query
+        # Set is admin if had token
+        if token != '':
+            is_admin = customPermission.is_role_admin(request, token)
+        # Init preparedQuery
         prepared_query = {}
+        # Detect to only active type if user is not admin
+        if not is_admin:
+            prepared_query['status__in'] = [product_details_config.get('status').get('ACTIVE')]
+        else:
+            if type_status != '':
+                if not type_status in list(type_config.get('status', {}).values()):
+                    return JsonResponse({
+                        'code': -1,
+                        'message': "Status value does not support"
+                    })
+                prepared_query['status'] = type_status
         # Validate name
         if type_name != '':
             prepared_query['name__icontains'] = type_name
@@ -1586,11 +1645,12 @@ def get_list_type(request):
             },
             'message': "Get list type successfully"
         })
-    except LookupError :
+    except LookupError:
         return JsonResponse({
             'code': -1,
             'message': LookupError.__doc__
         })
+
 
 @csrf_exempt
 def edit_type(request):
@@ -1599,7 +1659,7 @@ def edit_type(request):
     # Get header value
     header_value = request.headers or {}
     token = header_value.get('Authorization', '')
-   # Get body value
+    # Get body value
     raw_data = request.body.decode('utf-8')
     data = json.loads(raw_data)
     type_id = data.get('id', '')
@@ -1625,7 +1685,7 @@ def edit_type(request):
         where['id'] = type_id
         # Validate name
         if type_name != '':
-            found_type = Type.objects.filter(name__iexact = type_name).first() or {}
+            found_type = Type.objects.filter(name__iexact=type_name).first() or {}
             if found_type != {}:
                 # parse found_size
                 found_type = model_to_dict(found_type)
@@ -1643,8 +1703,8 @@ def edit_type(request):
                     'message': "Status value does not support"
                 })
             prepared_update['status'] = type_status
-        # Validate prepared update 
-        if(Obj.is_empty(prepared_update)):
+        # Validate prepared update
+        if (Obj.is_empty(prepared_update)):
             return JsonResponse({
                 'code': -1,
                 'message': "Don't have data to update"
@@ -1658,7 +1718,7 @@ def edit_type(request):
                 'message': "Type not found"
             })
         #  Go update
-        found_type.update(prepared_update)
+        found_types.update(**prepared_update)
         # Get user value after update
         after_update_type = Type.objects.filter(**where).first()
         # Go convert to object
@@ -1669,7 +1729,7 @@ def edit_type(request):
             'data': type_info,
             'message': "Update type successfully"
         })
-    except LookupError :
+    except LookupError:
         return JsonResponse({
             'code': -1,
             'message': LookupError.__doc__
