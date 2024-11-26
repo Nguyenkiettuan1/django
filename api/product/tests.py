@@ -651,3 +651,4 @@ class ProductEditTests(APITestCase):
                 'material': [str(self.material.name)]
             }
         })
+
