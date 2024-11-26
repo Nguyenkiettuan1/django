@@ -15,7 +15,6 @@ from .models import Product, ProductDetails, Color, Size, Material, Type, Produc
     material_config, product_materials_config, type_config, product_types_config
 from ..utils import Obj, Int, UUIDEncoder
 
-
 # ViewSet for Product
 class ProductViewSet(viewsets.ModelViewSet):
     queryset = Product.objects.all()
@@ -126,14 +125,12 @@ def add_product(request):
                     'code': -1,
                     'message': "Duplicate product type value"
                 })
-            try:
-                # Assume `type` is passed in the request data
-                found_type = Type.objects.get(id=type)
-            except ObjectDoesNotExist:
+            found_type = Type.objects.get(id = type)
+            if model_to_dict(found_type) == {}:
                 return JsonResponse({
                     'code': -1,
                     'message': "Invalid type value"
-                }, status=400)
+                })
             types_name.append(model_to_dict(found_type).get('name', ''))
             validated_types[type] = found_type
         # Validate material
@@ -145,14 +142,12 @@ def add_product(request):
                     'code': -1,
                     'message': "Duplicate product material value"
                 })
-            try:
-                # Assume `type` is passed in the request data
-                found_material = Material.objects.get(id=material)
-            except ObjectDoesNotExist:
+            found_material = Material.objects.get(id = material)
+            if model_to_dict(found_material) == {}:
                 return JsonResponse({
                     'code': -1,
                     'message': "Invalid material value"
-                }, status=400)
+                })
             materials_name.append(model_to_dict(found_material).get('name', ''))
             validated_materials[material] = found_material
         # Validate product details
@@ -169,23 +164,19 @@ def add_product(request):
                     'message': "Duplicate product details value"
                 })
             # Validate color
-            try:
-                # Assume `type` is passed in the request data
-                found_color = Color.objects.get(id=color_id)
-            except ObjectDoesNotExist:
+            found_color = Color.objects.get(id = color_id)
+            if model_to_dict(found_color) == {}:
                 return JsonResponse({
                     'code': -1,
                     'message': "Color not found or missing value"
-                }, status=400)
+                })
             # Validate size
-            try:
-                # Assume `type` is passed in the request data
-                found_size = Size.objects.get(id=size_id)
-            except ObjectDoesNotExist:
+            found_size = Size.objects.get(id = size_id)
+            if model_to_dict(found_size) == {}:
                 return JsonResponse({
-                     'code': -1,
+                    'code': -1,
                     'message': "Size not found or missing value"
-                }, status=400)
+                })
             # Validate qty
             if not isinstance(qty, int):
                 return JsonResponse({
