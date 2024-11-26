@@ -942,26 +942,28 @@ def get_list_color(request):
     page = int(params_value.get('page', 0))
     limit = int(params_value.get('limit', 10))
     offset = page * limit
+    # init is admin
+    is_admin = False
     try:
-        # Validate authen
-        if not customPermission.is_role_admin(request, token):
-            return JsonResponse({
-                'code': -1,
-                'message': "User dont't have permission to access this action"
-            })
-        # prepared query
+        # Set is admin if had token
+        if token != '':
+            is_admin = customPermission.is_role_admin(request, token)
+        # Init preparedQuery
         prepared_query = {}
+         # Detect to only active color if user is not admin
+        if not is_admin:
+            prepared_query['status__in'] = [product_details_config.get('status').get('ACTIVE')]
+        else:
+            if color_status != '':
+                if not color_status in list(color_config.get('status', {}).values()):
+                    return JsonResponse({
+                        'code': -1,
+                        'message': "Status value does not support"
+                    })
+                prepared_query['status'] = color_status
         # Validate name
         if color_name != '':
             prepared_query['name__icontains'] = color_name
-        # Validate status
-        if color_status != '':
-            if not color_status in list(color_config.get('status', {}).values()):
-                return JsonResponse({
-                    'code': -1,
-                    'message': "Status value does not support"
-                })
-            prepared_query['status'] = color_status
         # Go filter
         found_colors = Color.objects.filter(**prepared_query)
         # Count total
@@ -1145,26 +1147,28 @@ def get_list_size(request):
     page = int(params_value.get('page', 0))
     limit = int(params_value.get('limit', 10))
     offset = page * limit
+     # init is admin
+    is_admin = False
     try:
-        # Validate authen
-        if not customPermission.is_role_admin(request, token):
-            return JsonResponse({
-                'code': -1,
-                'message': "User dont't have permission to access this action"
-            })
-        # prepared query
+        # Set is admin if had token
+        if token != '':
+            is_admin = customPermission.is_role_admin(request, token)
+        # Init preparedQuery
         prepared_query = {}
+         # Detect to only active size if user is not admin
+        if not is_admin:
+            prepared_query['status__in'] = [product_details_config.get('status').get('ACTIVE')]
+        else:
+            if size_status != '':
+                if not size_status in list(size_config.get('status', {}).values()):
+                    return JsonResponse({
+                        'code': -1,
+                        'message': "Status value does not support"
+                    })
+                prepared_query['status'] = size_status
         # Validate name
         if size_name != '':
             prepared_query['name__icontains'] = size_name
-        # Validate status
-        if size_status != '':
-            if not size_status in list(size_config.get('status', {}).values()):
-                return JsonResponse({
-                    'code': -1,
-                    'message': "Status value does not support"
-                })
-            prepared_query['status'] = size_status
         # Go filter
         found_sizes = Size.objects.filter(**prepared_query)
         # Count total
@@ -1347,26 +1351,28 @@ def get_list_material(request):
     page = int(params_value.get('page', 0))
     limit = int(params_value.get('limit', 10))
     offset = page * limit
+     # init is admin
+    is_admin = False
     try:
-        # Validate authen
-        if not customPermission.is_role_admin(request, token):
-            return JsonResponse({
-                'code': -1,
-                'message': "User dont't have permission to access this action"
-            })
-        # prepared query
+        # Set is admin if had token
+        if token != '':
+            is_admin = customPermission.is_role_admin(request, token)
+        # Init preparedQuery
         prepared_query = {}
+         # Detect to only active material if user is not admin
+        if not is_admin:
+            prepared_query['status__in'] = [product_details_config.get('status').get('ACTIVE')]
+        else:
+            if material_status != '':
+                if not material_status in list(material_config.get('status', {}).values()):
+                    return JsonResponse({
+                        'code': -1,
+                        'message': "Status value does not support"
+                    })
+                prepared_query['status'] = material_status
         # Validate name
         if material_name != '':
             prepared_query['name__icontains'] = material_name
-        # Validate status
-        if material_status != '':
-            if not material_status in list(material_config.get('status', {}).values()):
-                return JsonResponse({
-                    'code': -1,
-                    'message': "Status value does not support"
-                })
-            prepared_query['status'] = material_status
         # Go filter
         found_materials = Material.objects.filter(**prepared_query)
         # Count total
@@ -1550,15 +1556,25 @@ def get_list_type(request):
     page = int(params_value.get('page', 0))
     limit = int(params_value.get('limit', 10))
     offset = page * limit
+    # init is admin
+    is_admin = False
     try:
-        # Validate authen
-        if not customPermission.is_role_admin(request, token):
-            return JsonResponse({
-                'code': -1,
-                'message': "User dont't have permission to access this action"
-            })
-        # prepared query
+        # Set is admin if had token
+        if token != '':
+            is_admin = customPermission.is_role_admin(request, token)
+        # Init preparedQuery
         prepared_query = {}
+         # Detect to only active type if user is not admin
+        if not is_admin:
+            prepared_query['status__in'] = [product_details_config.get('status').get('ACTIVE')]
+        else:
+            if type_status != '':
+                if not type_status in list(type_config.get('status', {}).values()):
+                    return JsonResponse({
+                        'code': -1,
+                        'message': "Status value does not support"
+                    })
+                prepared_query['status'] = type_status
         # Validate name
         if type_name != '':
             prepared_query['name__icontains'] = type_name
