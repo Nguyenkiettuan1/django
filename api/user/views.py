@@ -52,7 +52,8 @@ def login(request):
         token = jwtToken.generate_token(user_id)
         user_info = {
             "id" : user_id,
-            "email" : found_user.get('email', '')
+            "email" : found_user.get('email', ''),
+            "role" : found_user.get('role', ''),
         }
         # remove user password
         return JsonResponse({

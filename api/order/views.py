@@ -248,7 +248,7 @@ def get_list_order(request):
     from_date = params_value.get('fromDate', '')
     to_date = params_value.get('toDate', '')
     # Pagination
-    page = int(params_value.get('page', 1))
+    page = int(params_value.get('page', 0))
     limit = int(params_value.get('limit', 10))
     offset = page * limit
     try:

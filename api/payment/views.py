@@ -172,7 +172,7 @@ def get_list_payment(request):
     payment_name = params_value.get('name', '')
     payment_status = params_value.get('status', '')
     # Pagination
-    page = int(params_value.get('page', 1))
+    page = int(params_value.get('page', 0))
     limit = int(params_value.get('limit', 10))
     offset = page * limit
     try:
@@ -314,7 +314,7 @@ def get_list_user_payment(request):
     user_id = params_value.get('user', '')
     user_payment_status = params_value.get('status', '')
     # Pagination
-    page = int(params_value.get('page', 1))
+    page = int(params_value.get('page', 0))
     limit = int(params_value.get('limit', 10))
     offset = page * limit
     try:
