@@ -850,7 +850,7 @@ def edit_product_details(request):
                     })
             prepared_update['status'] =  product_details_status
         #  Go update
-        found_product_details.update(prepared_update)
+        found_product_details.update(**prepared_update)
         # Find all product details
         after_update_product_details = ProductDetails.objects.filter(id = product_detail)
         # Go convert to object
@@ -1051,7 +1051,7 @@ def edit_color(request):
                 'message': "Color not found"
             })
         #  Go update
-        found_color.update(prepared_update)
+        found_colors.update(**prepared_update)
         # Get user value after update
         after_update_color = Color.objects.filter(**where).first()
         # Go convert to object
@@ -1253,7 +1253,7 @@ def edit_size(request):
                 'message': "Size not found"
             })
         #  Go update
-        found_size.update(prepared_update)
+        found_sizes.update(**prepared_update)
         # Get user value after update
         after_update_size = Size.objects.filter(**where).first()
         # Go convert to object
@@ -1455,7 +1455,7 @@ def edit_material(request):
                 'message': "Material not found"
             })
         #  Go update
-        found_material.update(prepared_update)
+        found_materials.update(**prepared_update)
         # Get user value after update
         after_update_material = Material.objects.filter(**where).first()
         # Go convert to object
@@ -1658,7 +1658,7 @@ def edit_type(request):
                 'message': "Type not found"
             })
         #  Go update
-        found_type.update(prepared_update)
+        found_types.update(**prepared_update)
         # Get user value after update
         after_update_type = Type.objects.filter(**where).first()
         # Go convert to object
