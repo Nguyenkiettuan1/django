@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="DdlMappings">
+    <mapping uuid="dd78fc7c-18e5-45d9-aac3-c1e37f446436" name="the-banned@localhost Mapping">
+      <data-sources db="6b7e3f4f-ada2-4022-b9b2-eb6c9a8e306d" />
+      <scope>
+        <node kind="database" negative="1" />
+      </scope>
+    </mapping>
+  </component>
+</project>
