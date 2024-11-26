@@ -149,7 +149,7 @@ def register(request):
         if user_status == '':
             user_status = user_config.get('status', {}).get('ACTIVE', '')
         else:
-            if not user_status in list(user_config.get('role', {}).values()):
+            if not user_status in list(user_config.get('status', {}).values()):
                 return JsonResponse({
                     'code': -1,
                     'message': "Invalid status value"
