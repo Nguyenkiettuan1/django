@@ -577,10 +577,11 @@ def get_list_product(request):
     product_to_price = params_value.get('price[to]', '')
     product_status = params_value.get('status', '')
     # Reference param
-    product_types = params_value.getlist('types[]', [])
-    product_materials = params_value.getlist('materials[]', [])
+    parse_params = dict(params_value)
+    product_types = parse_params.get('types[]', [])
+    product_materials = parse_params.get('materials[]', [])
     # Pagination
-    page = int(params_value.get('page', 1))
+    page = int(params_value.get('page', 0))
     limit = int(params_value.get('limit', 10))
     offset = page * limit
     # init is admin
@@ -938,7 +939,7 @@ def get_list_color(request):
     color_name = params_value.get('name', '')
     color_status = params_value.get('status', '')
     # Pagination
-    page = int(params_value.get('page', 1))
+    page = int(params_value.get('page', 0))
     limit = int(params_value.get('limit', 10))
     offset = page * limit
     try:
@@ -1141,7 +1142,7 @@ def get_list_size(request):
     size_name = params_value.get('name', '')
     size_status = params_value.get('status', '')
     # Pagination
-    page = int(params_value.get('page', 1))
+    page = int(params_value.get('page', 0))
     limit = int(params_value.get('limit', 10))
     offset = page * limit
     try:
@@ -1343,7 +1344,7 @@ def get_list_material(request):
     material_name = params_value.get('name', '')
     material_status = params_value.get('status', '')
     # Pagination
-    page = int(params_value.get('page', 1))
+    page = int(params_value.get('page', 0))
     limit = int(params_value.get('limit', 10))
     offset = page * limit
     try:
@@ -1546,7 +1547,7 @@ def get_list_type(request):
     type_name = params_value.get('name', '')
     type_status = params_value.get('status', '')
     # Pagination
-    page = int(params_value.get('page', 1))
+    page = int(params_value.get('page', 0))
     limit = int(params_value.get('limit', 10))
     offset = page * limit
     try:
