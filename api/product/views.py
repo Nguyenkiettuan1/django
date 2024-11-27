@@ -125,12 +125,14 @@ def add_product(request):
                     'code': -1,
                     'message': "Duplicate product type value"
                 })
-            found_type = Type.objects.get(id = type)
-            if model_to_dict(found_type) == {}:
+            try:
+                # Assume `type` is passed in the request data
+                found_type = Type.objects.get(id = type)
+            except ObjectDoesNotExist:
                 return JsonResponse({
                     'code': -1,
                     'message': "Invalid type value"
-                })
+                }, status=400)
             types_name.append(model_to_dict(found_type).get('name', ''))
             validated_types[type] = found_type
         # Validate material
@@ -142,12 +144,14 @@ def add_product(request):
                     'code': -1,
                     'message': "Duplicate product material value"
                 })
-            found_material = Material.objects.get(id = material)
-            if model_to_dict(found_material) == {}:
+            try:
+                # Assume `material` is passed in the request data
+                found_material = Material.objects.get(id = material)
+            except ObjectDoesNotExist:
                 return JsonResponse({
                     'code': -1,
                     'message': "Invalid material value"
-                })
+                }, status=400)
             materials_name.append(model_to_dict(found_material).get('name', ''))
             validated_materials[material] = found_material
         # Validate product details
@@ -164,19 +168,23 @@ def add_product(request):
                     'message': "Duplicate product details value"
                 })
             # Validate color
-            found_color = Color.objects.get(id = color_id)
-            if model_to_dict(found_color) == {}:
+            try:
+                # Assume `color` is passed in the request data
+                found_color = Color.objects.get(id = color_id)
+            except ObjectDoesNotExist:
                 return JsonResponse({
                     'code': -1,
                     'message': "Color not found or missing value"
-                })
+                }, status=400)
             # Validate size
-            found_size = Size.objects.get(id = size_id)
-            if model_to_dict(found_size) == {}:
+            try:
+                # Assume `size` is passed in the request data
+                found_size = Size.objects.get(id = size_id)
+            except ObjectDoesNotExist:
                 return JsonResponse({
                     'code': -1,
                     'message': "Size not found or missing value"
-                })
+                }, status=400)
             # Validate qty
             if not isinstance(qty, int):
                 return JsonResponse({
