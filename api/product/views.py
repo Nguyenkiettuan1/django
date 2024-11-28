@@ -81,7 +81,7 @@ def add_product(request):
             return JsonResponse({
                 'code': -1,
                 'message': "Product name is required"
-            })
+            },status = 200)
         else:
             # found product by name
             found_products = Product.objects.filter(name__iexact=product_name).first() or {}
@@ -291,13 +291,13 @@ def edit_product(request):
             return JsonResponse({
                 'code': -1,
                 'message': "User dont't have permission to access this action"
-            },status = 403)
+            })
         # Validate product by id
         if product_id == '':
             return JsonResponse({
                 'code': -1,
                 'message': "id is required"
-            },status = 400)
+            })
         found_product = None
         try:
             # Assume `type` is passed in the request data
@@ -306,7 +306,7 @@ def edit_product(request):
             return JsonResponse({
                 'code': -1,
                 'message': "Product not found"
-            }, status=400)
+            })
         # Init prepared_product_update
         prepared_product_update = {}
         # Go validate product field
@@ -320,7 +320,7 @@ def edit_product(request):
                     return JsonResponse({
                         'code': -1,
                         'message': f'Product {product_name} is existed'
-                    },status = 400)
+                    },status = 200)
             prepared_product_update['name'] = product_name
         # Validate product price
         if product_price != '':
@@ -328,13 +328,13 @@ def edit_product(request):
                 return JsonResponse({
                     'code': -1,
                     'message': "Product must be a number"
-                },status = 400)
+                },status = 200)
             else:
                 if product_price < 0:
                     return JsonResponse({
                         'code': -1,
                         'message': "Product price must be positive integer"
-                    },status = 400)
+                    },status = 200)
             # parse float product price
             prepared_product_update['price'] = float(product_price)
         # Validate product status
@@ -343,7 +343,7 @@ def edit_product(request):
                 return JsonResponse({
                     'code': -1,
                     'message': "Status value does not support"
-                },status = 400)
+                },status = 200)
             prepared_product_update['status'] = product_status
         # Product description
         if product_description != '':
@@ -370,7 +370,7 @@ def edit_product(request):
                     return JsonResponse({
                         'code': -1,
                         'message': "Type is duplicated"
-                    },status = 400)
+                    },status = 200)
                 # Go found type
                 try:
                     # Assume `type` is passed in the request data
@@ -379,7 +379,7 @@ def edit_product(request):
                     return JsonResponse({
                         'code': -1,
                         'message': "Type not found"
-                    }, status=400)
+                    }, status=200)
                 existed_product_types.append(type)
                 valided_add_type[type] = found_type
                 product_types_name[type] = model_to_dict(found_type).get('name')
@@ -391,7 +391,7 @@ def edit_product(request):
                     return JsonResponse({
                         'code': -1,
                         'message': "This product type not exited"
-                    },status = 400)
+                    },status = 200)
                 product_types_name.pop(type)
         # Validate material
         existed_product_materials = []
@@ -416,16 +416,16 @@ def edit_product(request):
                     return JsonResponse({
                         'code': -1,
                         'message': "Material is duplicated"
-                    },status = 400)
+                    },status = 200)
                 # Go found material
                 try:
-                    # Assume `type` is passed in the request data
+                    # Assume `material` is passed in the request data
                     found_material = Material.objects.get(id=material)
                 except ObjectDoesNotExist:
                     return JsonResponse({
                         'code': -1,
                         'message': "Material not found"
-                    }, status=400)
+                    }, status=200)
                 existed_product_materials.append(material)
                 valided_add_material[material] = found_material
                 product_materials_name[material] = model_to_dict(found_material).get('name')
@@ -438,7 +438,7 @@ def edit_product(request):
                     return JsonResponse({
                         'code': -1,
                         'message': "This product material not exited"
-                    },status = 400)
+                    },status = 200)
                 product_materials_name.pop(material)
         # Go update all value
         if (Obj.is_empty(prepared_product_update)
@@ -449,7 +449,7 @@ def edit_product(request):
             return JsonResponse({
                 'code': -1,
                 'message': "Don't have value to update"
-            },status = 400)
+            },status = 200)
         # Go add more product type info
         if not Obj.is_empty(add_product_types):
             for type in add_product_types:
@@ -529,7 +529,7 @@ def product_info(request):
             return JsonResponse({
                 'code': -1,
                 'message': "Product id is required"
-            },status = 400)
+            },status = 200)
         # Go found product
         found_product = Product.objects.filter(id=product_id).first() or {}
         # Throw error if product not found
@@ -537,7 +537,7 @@ def product_info(request):
             return JsonResponse({
                 'code': -1,
                 'message': "Product not found"
-            },status = 400)
+            },status = 200)
         # parse to dict
         found_product = model_to_dict(found_product)
         # Init prepared product details
@@ -631,7 +631,7 @@ def get_list_product(request):
                     return JsonResponse({
                         'code': -1,
                         'message': "Status value does not support"
-                    },status = 400)
+                    },status = 200)
                 preparedQuery['status'] = product_status
         if product_id != '':
             preparedQuery['id'] = product_id,
@@ -644,13 +644,13 @@ def get_list_product(request):
                     return JsonResponse({
                         'code': -1,
                         'message': "Product price must be a positive integer"
-                    },status = 400)
+                    },status = 200)
                 preparedQuery['price__gte'] = product_from_price
             except ValueError:
                 return JsonResponse({
                     'code': -1,
                     'message': "Product price must be a number"
-                },status = 400)
+                },status = 200)
         if product_to_price != '':
             # safe parse
             product_to_price = float(product_to_price)
@@ -734,10 +734,10 @@ def add_product_details(request):
     # Get header value
     header_value = request.headers or {}
     token = header_value.get('Authorization', '')
-    # Get body value
+    
     raw_data = request.body.decode('utf-8')
     data = json.loads(raw_data)
-    # Only product value
+
     product_id = data.get('product', '')
     product_details = data.get('details', [])
     try:
@@ -748,18 +748,17 @@ def add_product_details(request):
                 'message': "User dont't have permission to access this action"
             })
         # Validate product id
-        found_product = Product.objects.filter(id=product_id).first() or {}
-        if found_product == {}:
+        try:
+            # Assume `product` is passed in the request data
+            found_product = Product.objects.get(id=product_id)
+        except ObjectDoesNotExist:
             return JsonResponse({
                 'code': -1,
                 'message': "Product not found"
             })
         # Find all product details
-        found_product_details = ProductDetails.objects.filter(product=product_id)
-        # Validate product details
-        validated_details = []
-        # Parse to list
-        found_product_details = list(found_product_details)
+        found_product_details = ProductDetails.objects.filter(product=product_id).values('color', 'size')
+        validated_details = [(detail['color'], detail['size']) for detail in found_product_details]
         # Get exited product details
         for detail in found_product_details:
             color_id = detail.get('color', '')
@@ -776,15 +775,19 @@ def add_product_details(request):
                     'message': "Duplicate product details value or details existed"
                 })
             # Validate color
-            found_color = Color.objects.filter(id=color_id).first() or {}
-            if found_color == {}:
+            try:
+                # Assume `color` is passed in the request data
+                found_color = Color.objects.get(id=color_id)
+            except ObjectDoesNotExist:
                 return JsonResponse({
                     'code': -1,
                     'message': "Color not found or missing value"
                 })
             # Validate size
-            found_size = Size.objects.filter(id=size_id).first() or {}
-            if found_size == {}:
+            try:
+                # Assume `size` is passed in the request data
+                found_size = Size.objects.get(id=size_id)
+            except ObjectDoesNotExist:
                 return JsonResponse({
                     'code': -1,
                     'message': "Size not found or missing value"
@@ -810,9 +813,9 @@ def add_product_details(request):
             qty = detail.get('qty', 0)
             #  create
             create_product_details = ProductDetails.objects.create(
-                product=product_id,
-                color=color_id,
-                size=size_id,
+                product=found_product,
+                color=found_color,
+                size=found_size,
                 qty=qty
             )
             # add ro list
@@ -883,7 +886,7 @@ def edit_product_details(request):
         #  Go update
         found_product_details.update(**prepared_update)
         # Find all product details
-        after_update_product_details = ProductDetails.objects.filter(id=product_detail)
+        after_update_product_details = ProductDetails.objects.get(id=product_detail) # filter use when u want to query a set data
         # Go convert to object
         product_details_info = model_to_dict(after_update_product_details)
         return JsonResponse({

@@ -262,7 +262,7 @@ class ProductInfoTestCase(APITestCase):
         # Test with missing product ID
         response = self.client.get(self.url, {}, HTTP_AUTHORIZATION=f'Bearer {self.admin_token}')
 
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json().get('message'), "Product id is required")
 
     def test_product_not_found(self):
@@ -271,7 +271,7 @@ class ProductInfoTestCase(APITestCase):
         response = self.client.get(self.url, {'id': non_existent_product_id},
                                    HTTP_AUTHORIZATION=f'Bearer {self.admin_token}')
 
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json().get('message'), "Product not found")
 
     def test_get_product_info_non_admin(self):
@@ -369,7 +369,7 @@ class Product_get_list_product(APITestCase):
         response = self.client.get(self.url, {'status': 'INVALID_STATUS'},
                                    HTTP_AUTHORIZATION=f'Bearer {self.admin_token}')
 
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json().get('message'), "Status value does not support")
 
     def test_invalid_price_format(self):
@@ -377,14 +377,14 @@ class Product_get_list_product(APITestCase):
         response = self.client.get(self.url, {'price[from]': 'invalid'},
                                    HTTP_AUTHORIZATION=f'Bearer {self.admin_token}')
 
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json().get('message'), "Product price must be a number")
 
     def test_negative_price(self):
         # Test negative price value
         response = self.client.get(self.url, {'price[from]': '-100'}, HTTP_AUTHORIZATION=f'Bearer {self.admin_token}')
 
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json().get('message'), "Product price must be a positive integer")
     #
     # def test_pagination(self):
@@ -452,13 +452,13 @@ class ProductEditTests(APITestCase):
         self.USER_TOKEN = jwtToken.generate_token(str(self.USER.id))
 
         # Create necessary objects for related data
-        self.color = Color.objects.create(id=uuid.uuid4(), name="Red")
-        self.size = Size.objects.create(id=uuid.uuid4(), name="Large")
+        self.color = Color.objects.create(name="Red")
+        self.size = Size.objects.create( name="Large")
 
-        self.product = Product.objects.create(id=uuid.uuid4(), name="Test Product")
+        self.product = Product.objects.create(name="Test Product")
 
-        self.material = Material.objects.create(id=uuid.uuid4(), name="Metal")
-        self.type = Type.objects.create(id=uuid.uuid4(), name="Electronics")
+        self.material = Material.objects.create( name="Metal")
+        self.type = Type.objects.create( name="Electronics")
         #
         # self._data_Materail = {
         #     "product": self.product.id,
@@ -501,9 +501,11 @@ class ProductEditTests(APITestCase):
         response = self.client.put(self.edit_url, json.dumps({
             'id': str(self.product.id),
             'name': 'Updated Name'
-        }), content_type='application/json')
+        }), content_type='application/json',
+        HTTP_AUTHORIZATION=f'Bearer {self.USER_TOKEN}'
+        )
 
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"code": -1, "message": "User dont't have permission to access this action"})
 
     def test_missing_product_id(self):
@@ -511,7 +513,7 @@ class ProductEditTests(APITestCase):
             'name': 'Updated Name'
         }), content_type='application/json', HTTP_AUTHORIZATION=f'Bearer {self.admin_token}')
 
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"code": -1, "message": "id is required"})
 
     def test_product_not_found(self):
@@ -520,7 +522,7 @@ class ProductEditTests(APITestCase):
             'name': 'Updated Name'
         }), content_type='application/json', HTTP_AUTHORIZATION=f'Bearer {self.admin_token}')
 
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {'code': -1,
                 'message': "Product not found"})
 
@@ -531,7 +533,7 @@ class ProductEditTests(APITestCase):
             'name': 'Duplicate Name'
         }), content_type='application/json', HTTP_AUTHORIZATION=f'Bearer {self.admin_token}')
 
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"code": -1, "message": "Product Duplicate Name is existed"})
 
     def test_invalid_product_price_type(self):
@@ -540,7 +542,7 @@ class ProductEditTests(APITestCase):
             'price': 'invalid_price'
         }), content_type='application/json', HTTP_AUTHORIZATION=f'Bearer {self.admin_token}')
 
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"code": -1, "message": "Product must be a number"})
 
     def test_negative_product_price(self):
@@ -549,7 +551,7 @@ class ProductEditTests(APITestCase):
             'price': -50
         }), content_type='application/json', HTTP_AUTHORIZATION=f'Bearer {self.admin_token}')
 
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"code": -1, "message": "Product price must be positive integer"})
 
     def test_unsupported_status_value(self):
@@ -558,7 +560,7 @@ class ProductEditTests(APITestCase):
             'status': 'INVALID_STATUS'
         }), content_type='application/json', HTTP_AUTHORIZATION=f'Bearer {self.admin_token}')
 
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"code": -1, "message": "Status value does not support"})
 
     def test_type_duplicated_in_addTypes(self):
@@ -568,7 +570,7 @@ class ProductEditTests(APITestCase):
             'addTypes': [str(self.type.id)]
         }), content_type='application/json', HTTP_AUTHORIZATION=f'Bearer {self.admin_token}')
 
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"code": -1, "message": "Type is duplicated"})
 
     def test_type_not_found(self):
@@ -577,7 +579,7 @@ class ProductEditTests(APITestCase):
             'addTypes': [str(uuid.uuid4())]
         }), content_type='application/json', HTTP_AUTHORIZATION=f'Bearer {self.admin_token}')
 
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"code": -1, "message": "Type not found"})
 
     def test_non_existent_product_type_deletion(self):
@@ -586,7 +588,7 @@ class ProductEditTests(APITestCase):
             'deleteTypes': ['non_existent_type_id']
         }), content_type='application/json', HTTP_AUTHORIZATION=f'Bearer {self.admin_token}')
 
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"code": -1, "message": "This product type not exited"})
 
     def test_material_duplicated_in_addMaterials(self):
@@ -596,7 +598,7 @@ class ProductEditTests(APITestCase):
             'addMaterials': [str(self.material.id)]
         }), content_type='application/json', HTTP_AUTHORIZATION=f'Bearer {self.admin_token}')
 
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"code": -1, "message": "Material is duplicated"})
 
     def test_material_not_found(self):
@@ -605,7 +607,7 @@ class ProductEditTests(APITestCase):
             'addMaterials': [f'{uuid.uuid4()}']
         }), content_type='application/json', HTTP_AUTHORIZATION=f'Bearer {self.admin_token}')
 
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"code": -1, "message": "Material not found"})
 
     def test_non_existent_product_material_deletion(self):
@@ -614,7 +616,7 @@ class ProductEditTests(APITestCase):
             'deleteMaterials': [f'{uuid.uuid4()}']
         }), content_type='application/json', HTTP_AUTHORIZATION=f'Bearer {self.admin_token}')
 
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"code": -1, "message": "This product material not exited"})
 
     def test_no_fields_to_update(self):
@@ -622,7 +624,7 @@ class ProductEditTests(APITestCase):
             'id': str(self.product.id)
         }), content_type='application/json', HTTP_AUTHORIZATION=f'Bearer {self.admin_token}')
 
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"code": -1, "message": "Don't have value to update"})
 
     def test_successful_product_update(self):
@@ -652,6 +654,436 @@ class ProductEditTests(APITestCase):
         #     'material': [str(material1.name)]
         # }
         )
+
+
+class Product_add_product_details(APITestCase):
+    def setUp(self):
+        """Set up test data and users."""
+        # Create a user with admin permissions
+        self.admin_user_data = {
+            "email": "admin_user@example.com",
+            "password": "password123",
+            "role": user_config.get('role', {}).get('ADMIN', 'admin'),
+            "phone": "1234567890",
+            "status": user_config.get('status', {}).get('ACTIVE', 'active')
+        }
+        self.admin_user = UserCustomer.objects.create(**self.admin_user_data)
+        self.admin_token = jwtToken.generate_token(str(self.admin_user.id))
+
+        self.user_data = {
+            "email": "user@example.com",
+            "password": "password123",
+            "role": user_config.get('role', {}).get('USER', 'user'),
+            "phone": "1234567890",
+            "status": user_config.get('status', {}).get('ACTIVE', 'active')
+        }
+        self.USER = UserCustomer.objects.create(**self.user_data)
+        self.USER_TOKEN = jwtToken.generate_token(str(self.USER.id))
+
+        # Create necessary objects for related data
+        self.color = Color.objects.create(id=uuid.uuid4(), name="Red")
+        self.size = Size.objects.create(id=uuid.uuid4(), name="Large")
+
+        self.product = Product.objects.create(id=uuid.uuid4(), name="Test Product")
+
+        self.material = Material.objects.create(id=uuid.uuid4(), name="Metal")
+        self.type = Type.objects.create(id=uuid.uuid4(), name="Electronics")
+        #
+        # self._data_Materail = {
+        #     "product": self.product.id,
+        #     "material": self.product.name,
+        #     "size": self.size.id,
+        #     "color": self.color.id,
+        #     "qty": self.product.qty,
+        # }
+        self.product_Materails = ProductMaterials.objects.create(product=self.product, material=self.material)
+        self.product_type = ProductTypes.objects.create(type=self.type, product=self.product)
+
+        # Valid data for product creation
+
+        # self.valid_data = {
+        #     "name": "New Product",
+        #     "price": 100.0,
+        #     "status": "active",
+        #     "description": "A test product",
+        #     "types": [str(self.product_type.id)],
+        #     "materials": [str(self.material.id)],
+        #     "details": [{
+        #         "color": str(self.color.id),
+        #         "size": str(self.size.id),
+        #         "qty": 10
+        #     }]
+        # }
+
+        self.url = reverse('add-product-details')  # Assuming this is the correct URL name for the view
+
+    """"                            TEST add-product-details                        """
+    """"                 -------------------------------                            """
+    """"                 -------------------------------                            """
+
+    def test_user_without_permission(self):
+        """Test that a user without permission cannot create product details."""
+        payload = {
+            "product": str(self.product.id),
+            "details": [
+                {"color": str(self.color.id), "size": str(self.size.id), "qty": 10}
+            ]
+        }
+        response = self.client.post(
+            self.url,
+            data=json.dumps(payload),
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {self.USER_TOKEN}"
+        )
+
+        self.assertEqual(response.status_code, 200)  # Adjust if your permission system uses another code
+        self.assertEqual(response.json(), {
+            "code": -1,
+            "message": "User dont't have permission to access this action"
+        })
+
+    def test_product_not_found(self):
+        """Test error when the product ID is invalid."""
+        payload = {
+            "product": str(uuid.uuid4()),
+            "details": [
+                {"color": str(self.color.id), "size": str(self.size.id), "qty": 10}
+            ]
+        }
+        response = self.client.post(
+            self.url,
+            data=json.dumps(payload),
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {self.admin_token}"
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {
+            "code": -1,
+            "message": "Product not found"
+        })
+
+
+    def test_duplicate_product_details(self):
+        """Test error when duplicate product details are provided."""
+        ProductDetails.objects.create(
+            product=self.product,
+            size=self.size,
+            color=self.color,
+            qty=10
+        )
+        payload = {
+            "product": str(self.product.id),
+            "details": [
+                {"color": str(self.color.id), "size": str(self.size.id), "qty": 10}
+            ]
+        }
+        response = self.client.post(
+            self.url,
+            data=json.dumps(payload),
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {self.admin_token}"
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {
+            "code": -1,
+            "message": "Duplicate product details value or details existed"
+        })
+
+    def test_color_not_found(self):
+        """Test error when size ID is invalid."""
+        payload = {
+            "product": str(self.product.id),
+            "details": [
+                {"color": str(uuid.uuid4()), "size": str(self.size.id), "qty": 10}
+            ]
+        }
+        response = self.client.post(
+            self.url,
+            data=json.dumps(payload),
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {self.admin_token}"
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(),{
+            'code': -1,
+            'message': "Color not found or missing value"
+        }
+        )
+
+
+    def test_size_not_found(self):
+        """Test error when size ID is invalid."""
+        payload = {
+            "product": str(self.product.id),
+            "details": [
+                {"color": str(self.color.id), "size": str(uuid.uuid4()), "qty": 10}
+            ]
+        }
+        response = self.client.post(
+            self.url,
+            data=json.dumps(payload),
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {self.admin_token}"
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(),{
+            'code': -1,
+            'message': "Size not found or missing value"
+        }
+        )
+
+    def test_qty_not_a_number(self):
+        """Test error when quantity is not a number."""
+        payload = {
+            "product": str(self.product.id),
+            "details": [
+                {"color": str(self.color.id), "size": str(self.size.id), "qty": "not_a_number"}
+            ]
+        }
+        response = self.client.post(
+            self.url,
+            data=json.dumps(payload),
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {self.admin_token}"
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {
+            "code": -1,
+            "message": "Qty must be a number"
+        })
+
+    def test_qty_not_positive_integer(self):
+        """Test error when quantity is negative."""
+        payload = {
+            "product": str(self.product.id),
+            "details": [
+                {"color": str(self.color.id), "size": str(self.size.id), "qty": -5}
+            ]
+        }
+        response = self.client.post(
+            self.url,
+            data=json.dumps(payload),
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {self.admin_token}"
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {
+            "code": -1,
+            "message": "Qty must be positive integer"
+        })
+    def test_successful_add_product_details(self):
+        payload = {
+            "product": str(self.product.id),
+            "details": [
+                {"color": str(self.color.id), "size": str(self.size.id), "qty": 10}
+            ]
+        }
+        response = self.client.post(
+            self.url,
+            data=json.dumps(payload),
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {self.admin_token}"
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['code'], 0)
+        self.assertEqual(response.json()['message'], "Create product details successfully")
+
+
+class Product_edit_product_details(APITestCase):
+    def setUp(self):
+        """Set up test data and users."""
+        # Create a user with admin permissions
+        self.admin_user_data = {
+            "email": "admin_user@example.com",
+            "password": "password123",
+            "role": user_config.get('role', {}).get('ADMIN', 'admin'),
+            "phone": "1234567890",
+            "status": user_config.get('status', {}).get('ACTIVE', 'active')
+        }
+        self.admin_user = UserCustomer.objects.create(**self.admin_user_data)
+        self.admin_token = jwtToken.generate_token(str(self.admin_user.id))
+
+        self.user_data = {
+            "email": "user@example.com",
+            "password": "password123",
+            "role": user_config.get('role', {}).get('USER', 'user'),
+            "phone": "1234567890",
+            "status": user_config.get('status', {}).get('ACTIVE', 'active')
+        }
+        self.USER = UserCustomer.objects.create(**self.user_data)
+        self.USER_TOKEN = jwtToken.generate_token(str(self.USER.id))
+
+        # Create necessary objects for related data
+        self.color = Color.objects.create(id=uuid.uuid4(), name="Red")
+        self.size = Size.objects.create(id=uuid.uuid4(), name="Large")
+
+        self.product = Product.objects.create(id=uuid.uuid4(), name="Test Product")
+
+        self.material = Material.objects.create(id=uuid.uuid4(), name="Metal")
+        self.type = Type.objects.create(id=uuid.uuid4(), name="Electronics")
+        #
+        # self._data_Materail = {
+        #     "product": self.product.id,
+        #     "material": self.product.name,
+        #     "size": self.size.id,
+        #     "color": self.color.id,
+        #     "qty": self.product.qty,
+        # }
+        self.product_Materails = ProductMaterials.objects.create(product=self.product, material=self.material)
+        self.product_type = ProductTypes.objects.create(type=self.type, product=self.product)
+
+        # Valid data for product creation
+
+        # self.valid_data = {
+        #     "name": "New Product",
+        #     "price": 100.0,
+        #     "status": "active",
+        #     "description": "A test product",
+        #     "types": [str(self.product_type.id)],
+        #     "materials": [str(self.material.id)],
+        #     "details": [{
+        #         "color": str(self.color.id),
+        #         "size": str(self.size.id),
+        #         "qty": 10
+        #     }]
+        # }
+
+        self.product_detail =  ProductDetails.objects.create(
+            product=self.product,
+            size=self.size,
+            color=self.color,
+            qty=10
+        )
+        self.url = reverse('edit-product-details')  # Assuming this is the correct URL name for the view
+
+    """"                            TEST edit-product-details                        """
+    """"                 -------------------------------                            """
+    """"                 -------------------------------                            """
+
+    def test_user_without_permission(self):
+        """Test API rejects access without proper permissions."""
+        payload = {
+            "productDetail": str(self.product_detail.id),
+            "qty": 20,
+            "status": "available"
+        }
+        response = self.client.put(
+            self.url,
+            data=json.dumps(payload),
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {self.USER_TOKEN}"
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {
+            "code": -1,
+            "message": "User dont't have permission to access this action"
+        })
+
+    def test_product_detail_not_found(self):
+        """Test API returns error when product detail is not found."""
+        payload = {
+            "productDetail": str(self.product.id),
+            "qty": 20,
+            "status": "available"
+        }
+        response = self.client.put(
+            self.url,
+            data=json.dumps(payload),
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {self.admin_token}"
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {
+            "code": -1,
+            "message": "Product details not found"
+        })
+
+    def test_qty_not_a_number(self):
+        """Test API returns error when quantity is not a number."""
+        payload = {
+            "productDetail": str(self.product_detail.id),
+            "qty": "invalid_qty",
+            "status": "available"
+        }
+        response = self.client.put(
+            self.url,
+            data=json.dumps(payload),
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {self.admin_token}"
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {
+            "code": -1,
+            "message": "Qty must be a number"
+        })
+
+    def test_qty_is_negative(self):
+        """Test API returns error when quantity is negative."""
+        payload = {
+            "productDetail": str(self.product_detail.id),
+            "qty": -5,
+            "status": "available"
+        }
+        response = self.client.put(
+            self.url,
+            data=json.dumps(payload),
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {self.admin_token}"
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {
+            "code": -1,
+            "message": "Qty must be positive integer"
+        })
+
+    def test_invalid_status_value(self):
+        """Test API returns error when status value is invalid."""
+        payload = {
+            "productDetail": str(self.product_detail.id),
+            "qty": 20,
+            "status": "invalid_status"
+        }
+        response = self.client.put(
+            self.url,
+            data=json.dumps(payload),
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {self.admin_token}"
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {
+            "code": -1,
+            "message": "Status value does not support"
+        })
+
+    def test_successful_update_product_details(self):
+        """Test API successfully updates product details."""
+        payload = {
+            "productDetail": str(self.product_detail.id),
+            "qty": 50,
+            "status": "active"
+        }
+        response = self.client.put(
+            self.url,
+            data=json.dumps(payload),
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {self.admin_token}"
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['code'], 0)
+        self.assertEqual(response.json()['message'], "Update product details successfully")
+
+        updated_details = response.json().get('data')
+        self.assertEqual(updated_details['qty'], 50)
+        self.assertEqual(updated_details['status'], "active")
+
+
 
 
 
