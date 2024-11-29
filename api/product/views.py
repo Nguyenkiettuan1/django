@@ -8,7 +8,7 @@ from django.forms.models import model_to_dict
 import json
 from ..policies import customPermission
 from .models import Product, ProductDetails, Color, Size, Material, Type, ProductMaterials, ProductTypes,product_config, product_details_config, color_config, product_colors_config, size_config, product_sizes_config, material_config, product_materials_config, type_config, product_types_config
-from ..utils import Obj, Int, UUIDEncoder
+from ..utils import Obj, Int, UUIDEncoder, ImageProcessing
 
 # ViewSet for Product
 class ProductViewSet(viewsets.ModelViewSet):
@@ -55,6 +55,7 @@ def add_product(request):
     product_price = data.get('price', 0)
     product_status = data.get('status', '')
     product_description = data.get('description', '')
+    product_images = data.get('images', [])
     # get relation data
     product_types = data.get('types', [])
     product_materials = data.get('materials', [])
@@ -182,12 +183,18 @@ def add_product(request):
             validated_details.append(f'{color_id}-{size_id}')
             validated_color[color_id] = found_color
             validated_size[size_id] = found_size
+        written_images = []
+        if not Obj.is_empty(product_images):
+            for image in product_images:
+                write_image = ImageProcessing.base64_to_image(image, 'img/product')
+                written_images.append(write_image)
         # Go create product
         create_product = Product.objects.create(
             name = product_name,
             price = product_price,
             status = product_status,
             description = product_description,
+            image = written_images
         )
         product_info = model_to_dict(create_product)
         # Go create product details 
