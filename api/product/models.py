@@ -92,7 +92,7 @@ class Product(models.Model):
     description = models.TextField(default='')
     price = models.FloatField(default= 0)
     status = models.CharField(max_length=10, default= product_config.get('status').get('ACTIVE'))
-    image = models.CharField(max_length=250, default = '')
+    image = models.JSONField(default=list)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     # relation
