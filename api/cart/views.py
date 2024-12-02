@@ -57,7 +57,7 @@ def add_to_cart(request):
         if found_product_details == {}:
             return JsonResponse({
                 'code': -1,
-                'message': "User have to login"
+                'message': "Product detail not found"
             })
         product_details_info = model_to_dict(found_product_details)
         product_info = model_to_dict(found_product_details.product)
