@@ -598,10 +598,10 @@ def get_list_product(request):
         if token != '':
             is_admin = customPermission.is_role_admin(request, token)
         # Init preparedQuery
-        preparedQuery = {}
+        prepared_query = {}
          # Detect to only active product if user is not admin
         if not is_admin:
-            preparedQuery['status__in'] = [product_details_config.get('status').get('ACTIVE')]
+            prepared_query['status__in'] = [product_details_config.get('status').get('ACTIVE')]
         else:
             if product_status != '':
                 if not product_status in list(product_config.get('status', {}).values()):
@@ -609,11 +609,11 @@ def get_list_product(request):
                         'code': -1,
                         'message': "Status value does not support"
                     })
-                preparedQuery['status'] = product_status
+                prepared_query['status'] = product_status
         if product_id != '':
-            preparedQuery['id'] = product_id,
+            prepared_query['id'] = product_id
         if product_name != '':
-            preparedQuery['name__icontains'] = product_name,
+            prepared_query["name__icontains"] = product_name
         if product_from_price != '':
             # safe parse
             product_from_price = float(product_from_price)
@@ -628,7 +628,7 @@ def get_list_product(request):
                         'code': -1,
                         'message': "Product price must be positive integer"
                     })
-            preparedQuery['price__gte'] = product_from_price
+            prepared_query['price__gte'] = product_from_price
         if product_to_price != '':
             # safe parse
             product_to_price = float(product_to_price)
@@ -643,7 +643,7 @@ def get_list_product(request):
                         'code': -1,
                         'message': "Product price must be positive integer"
                     })
-            preparedQuery['price__lte'] = product_to_price
+            prepared_query['price__lte'] = product_to_price
         product_types_ids = []
         product_materials_ids = []
         if not Obj.is_empty(product_types):
@@ -668,20 +668,20 @@ def get_list_product(request):
 
         # Init merge product ids
         product_ids = []
-        if not Obj.is_empty(product_types):
-            product_ids = product_types_ids
+        if not Obj.is_empty(product_types) and not Obj.is_empty(product_materials):
+            product_ids = set(product_types_ids).intersection(product_materials_ids)
         else:
+            if not Obj.is_empty(product_types):
+                product_ids = product_types_ids
             if not Obj.is_empty(product_materials):
                 product_ids = product_materials_ids
-            else:
-                if not Obj.is_empty(product_types) and not Obj.is_empty(product_materials):
-                    product_ids = set(product_types_ids).intersection(product_materials_ids)
+        
         # Add product id to prepared query
         if (not Obj.is_empty(product_types) or 
             not Obj.is_empty(product_materials)
         ):
-            preparedQuery['id__in'] = product_ids
-        found_products = Product.objects.filter(**preparedQuery)
+            prepared_query['id__in'] = product_ids
+        found_products = Product.objects.filter(**prepared_query)
         # Count total
         total_count = found_products.count()
         # Paginate
