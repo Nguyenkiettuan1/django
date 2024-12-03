@@ -116,9 +116,11 @@ def add_product(request):
                     'code': -1,
                     'message': "Duplicate product type value"
                 })
-            found_type = Type.objects.get(id = type)
-            if model_to_dict(found_type) == {}:
-                return JsonResponse({
+            found_type = {}
+            try:
+                found_type = Type.objects.get(id = type)
+            except Type.DoesNotExist:
+                  return JsonResponse({
                     'code': -1,
                     'message': "Invalid type value"
                 })
@@ -133,9 +135,11 @@ def add_product(request):
                     'code': -1,
                     'message': "Duplicate product material value"
                 })
-            found_material = Material.objects.get(id = material)
-            if model_to_dict(found_material) == {}:
-                return JsonResponse({
+            found_material = {}
+            try:
+                found_material = Material.objects.get(id = material)
+            except Material.DoesNotExist:
+                 return JsonResponse({
                     'code': -1,
                     'message': "Invalid material value"
                 })
@@ -155,15 +159,19 @@ def add_product(request):
                     'message': "Duplicate product details value"
                 })
             # Validate color
-            found_color = Color.objects.get(id = color_id)
-            if model_to_dict(found_color) == {}:
+            found_color = {}
+            try:
+                found_color = Color.objects.get(id=color_id)
+            except Color.DoesNotExist:
                 return JsonResponse({
                     'code': -1,
                     'message': "Color not found or missing value"
                 })
             # Validate size
-            found_size = Size.objects.get(id = size_id)
-            if model_to_dict(found_size) == {}:
+            found_size = {}
+            try:
+                found_size = Size.objects.get(id=size_id)
+            except Size.DoesNotExist:
                 return JsonResponse({
                     'code': -1,
                     'message': "Size not found or missing value"
@@ -286,9 +294,11 @@ def edit_product(request):
                     'code': -1,
                     'message': "id is required"
                 })
-        found_product = Product.objects.get(id = product_id) or {}
-        if found_product == {}:
-            return JsonResponse({
+        found_product = {}
+        try:
+                found_product = Product.objects.get(id = product_id)
+        except Product.DoesNotExist:
+                 return JsonResponse({
                     'code': -1,
                     'message': "Product not found"
                 })
@@ -357,9 +367,11 @@ def edit_product(request):
                         'message': "Type is duplicated"
                     })
                 # Go found type
-                found_type = Type.objects.get(id = type) or {}
-                if found_type == {}:
-                    return JsonResponse({
+                found_type = {}
+                try:
+                    found_type = Type.objects.get(id = type)
+                except Type.DoesNotExist:
+                  return JsonResponse({
                         'code': -1,
                         'message': "Type not found"
                     })
@@ -400,12 +412,15 @@ def edit_product(request):
                         'message': "Material is duplicated"
                     })
                 # Go found material
-                found_material = Material.objects.get(id = material) or {}
-                if found_material == {}:
-                    return JsonResponse({
+                found_material = {}
+                try:
+                 found_material = Material.objects.get(id = material)
+                except Material.DoesNotExist:
+                  return JsonResponse({
                         'code': -1,
                         'message': "Material not found"
                     })
+            
                 existed_product_materials.append(material)
                 valided_add_material[material] = found_material
                 product_materials_name[material] = model_to_dict(found_material).get('name')
@@ -616,19 +631,19 @@ def get_list_product(request):
             prepared_query["name__icontains"] = product_name
         if product_from_price != '':
             # safe parse
-            product_from_price = float(product_from_price)
-            if not isinstance(product_from_price, (int, float)):
-                return JsonResponse({
-                    'code': -1,
-                    'message': "Product price must be a number"
-                })
-            else:
+            try:
+                product_from_price = float(product_from_price)
                 if product_from_price < 0:
                     return JsonResponse({
                         'code': -1,
-                        'message': "Product price must be positive integer"
-                    })
-            prepared_query['price__gte'] = product_from_price
+                        'message': "Product price must be a positive integer"
+                    }, status=200)
+                prepared_query['price__gte'] = product_from_price
+            except ValueError:
+                return JsonResponse({
+                    'code': -1,
+                    'message': "Product price must be a number"
+                }, status=200)
         if product_to_price != '':
             # safe parse
             product_to_price = float(product_to_price)
@@ -641,7 +656,7 @@ def get_list_product(request):
                 if product_to_price < 0:
                     return JsonResponse({
                         'code': -1,
-                        'message': "Product price must be positive integer"
+                        'message': "Product price must be a positive integer"
                     })
             prepared_query['price__lte'] = product_to_price
         product_types_ids = []
@@ -706,6 +721,7 @@ def get_list_product(request):
 # --------- DETAILS ---------
 @csrf_exempt
 def add_product_details(request):
+    global found_color, found_size
     if not request.method == 'POST':
         return JsonResponse({'error': 'Send a valid POST request'})
     # Get header value
@@ -732,11 +748,9 @@ def add_product_details(request):
                     'message': "Product not found"
                 })
         # Find all product details
-        found_product_details = ProductDetails.objects.filter(product = product_id)
-        # Validate product details
-        validated_details = []
+        found_product_details = ProductDetails.objects.filter(product=product_id).values('color', 'size')
         # Parse to list
-        found_product_details = list(found_product_details)
+        validated_details = [(detail['color'], detail['size']) for detail in found_product_details]
         # Get exited product details
         for detail in found_product_details:
             color_id = detail.get('color', '')
@@ -787,9 +801,9 @@ def add_product_details(request):
             qty = detail.get('qty', 0)
             #  create
             create_product_details = ProductDetails.objects.create(
-                product = product_id,
-                color = color_id,
-                size = size_id,
+                product = found_product,
+                color = found_color,
+                size = found_size,
                 qty = qty
             )
             # add ro list
@@ -859,7 +873,7 @@ def edit_product_details(request):
         #  Go update
         found_product_details.update(**prepared_update)
         # Find all product details
-        after_update_product_details = ProductDetails.objects.filter(id = product_detail)
+        after_update_product_details = ProductDetails.objects.filter(id = product_detail).first()
         # Go convert to object
         product_details_info = model_to_dict(after_update_product_details)
         return JsonResponse({
@@ -1652,7 +1666,7 @@ def edit_type(request):
             if found_type != {}:
                 # parse found_size
                 found_type = model_to_dict(found_type)
-                if str(found_type.get('id')) != type_id:
+                if str(found_type.get('id')) == type_id:
                     return JsonResponse({
                         'code': -1,
                         'message': f'Type {type_name} is existed'

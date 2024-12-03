@@ -220,7 +220,7 @@ def list_user(request):
             if not user_role in list(user_config.get('role').values()):
                 return JsonResponse({
                 'code': -1,
-                'message': "Invalid status value"
+                'message': "Invalid role value"
             })
             prepared_query['role'] = user_role
         # Go query

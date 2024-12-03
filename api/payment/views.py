@@ -121,7 +121,7 @@ def edit_payment(request):
             if found_payment != {}:
                 # parse found_payments
                 found_payments = model_to_dict(found_payment)
-                if str(found_payment.get('id')) != payment_id:
+                if str(found_payment.id) == payment_id:
                     return JsonResponse({
                         'code': -1,
                         'message': f'Payment {payment_name} is existed'
@@ -148,7 +148,7 @@ def edit_payment(request):
             'code': 0,
             'message': "Edit payment successfully",
             'data': { 
-                    **model_to_dict(detect_payment)
+                    **model_to_dict(detect_payment),
                     **prepared_update
                 }
         })
@@ -338,10 +338,9 @@ def get_list_user_payment(request):
                     'code': -1,
                     'message': "User dont't have permission to access this action"
                 })
-            if user_id != '':
-                found_users = UserCustomer.objects.filter(id = req_uid).first() or {}
-                if found_users == {}:
-                    return JsonResponse({
+            found_users = UserCustomer.objects.filter(id = req_uid).first() or {}
+            if found_users == {}:
+                return JsonResponse({
                         'code': -1,
                         'message': "User not found"
                     })
