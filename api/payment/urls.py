@@ -10,6 +10,6 @@ urlpatterns = [
     path('add-payment', views.add_payment, name='add-payment'),
     path('edit-payment', views.edit_payment, name='edit-payment'),
     path('get-list-payment', views.get_list_payment, name='get-list-payment'),
-    path('add-user-payment', views.add_user_payment, name='add-use-payment'),
+    path('add-user-payment', views.add_user_payment, name='add-user-payment'),
     path('get-list-use-payment', views.get_list_user_payment, name='get-list-use-payment'),
 ]

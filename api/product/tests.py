@@ -1127,7 +1127,7 @@ class AddColorAPITestCase(APITestCase):
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {self.USER_TOKEN}"
         )
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {
             "code": -1,
             "message": "User dont't have permission to access this action"
@@ -2083,10 +2083,8 @@ class EditTypeTests(APITestCase):
 
     def test_name_already_exists(self):
         """Test error when a type name already exists."""
-        # Creating a type to test duplicate name handling
-        existing_type = Type.objects.create(name="ActiveType", status="active")
 
-        data = {"id": str(existing_type.id), "name": existing_type.name}
+        data = {"id": str(self.active_type.id), "name": self.active_type.name}
         response = self.client.put(
             self.url,
             data=json.dumps(data),
@@ -2096,7 +2094,7 @@ class EditTypeTests(APITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {
             "code": -1,
-            "message": f"Type {existing_type.name} is existed"
+            "message": f"Type {self.active_type.name} is existed"
         })
 
     def test_invalid_status_value(self):

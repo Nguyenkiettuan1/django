@@ -258,7 +258,7 @@ def edit_cart(request):
         )
         # Detect cart
         detect_cart = found_cart.select_related('product_details').first()
-        if found_cart == []:
+        if not detect_cart:
             return JsonResponse({
                 'code': -1,
                 'message': "Cart not found"
