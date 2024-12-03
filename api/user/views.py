@@ -266,12 +266,14 @@ def user_info(request):
             })
         # get uid from request
         req_uid = request.content_params.get('uid', '')
-        if req_uid != user_id:
+        if req_uid != user_id and user_id != '':
             if not customPermission.is_role_admin(request, token):
                 return JsonResponse({
                     'code': -1,
                     'message': "User dont't have permission to access this action"
                 })
+        else:
+            user_id = req_uid
         # Go query
         found_users = UserCustomer.objects.filter(id = user_id).first()
         # Go convert to object
