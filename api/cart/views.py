@@ -176,6 +176,7 @@ def get_list_cart(request):
             product_name = product.get('name')
             product_price = product.get('price')
             product_status = product.get('status')
+            product_img = product.get('image')[0] or ''
             # Parse cart
             tmp_cart = model_to_dict(user_cart)
             tmp_cart.pop('user')
@@ -204,10 +205,12 @@ def get_list_cart(request):
                 "qty": tmp_cart_qty,
                 "product": {
                     "name": product_name,
-                    "price": product_price
+                    "price": product_price,
+                    "img": product_img
                 },
                 "color": product_detail_color_name,
-                "size": product_detail_size_name
+                "size": product_detail_size_name,
+                "availableQty": product_detail_qty
             })
             
         # validate cart
