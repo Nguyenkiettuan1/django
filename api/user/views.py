@@ -214,14 +214,14 @@ def list_user(request):
                 return JsonResponse({
                 'code': -1,
                 'message': "Invalid status value"
-            },status = 400)
+            },status = 200)
             prepared_query['status'] = user_status
         if user_role != '':
             if not user_role in list(user_config.get('role').values()):
                 return JsonResponse({
                 'code': -1,
                 'message': "Invalid role value"
-            },status = 400)
+            },status = 200)
             prepared_query['role'] = user_role
         # Go query
         found_users = UserCustomer.objects.filter(**prepared_query)
@@ -340,7 +340,7 @@ def update_user(request):
                     return JsonResponse({
                         'code': -1,
                         'message': "Invalid role value"
-                    },status = 400)
+                    },status = 200)
                 prepared_update['role'] = user_role
             # Alter where query
             if user_id != '':
@@ -351,7 +351,7 @@ def update_user(request):
                     return JsonResponse({
                         'code': -1,
                         'message': "Invalid status value"
-                    },status = 400)
+                    },status = 200)
                 prepared_update['status'] = user_status
 
         # Validate password
@@ -362,19 +362,19 @@ def update_user(request):
                     return JsonResponse({
                         'code': -1,
                         'message': "Old password is required"
-                    },status = 400)
+                    },status = 200)
                 else:
                     if user_old_password != req_user.get('password', ''):
                         return JsonResponse({
                             'code': -1,
                             'message': "Not match password, please input again"
-                        }, status = 400)
+                        }, status = 200)
             # Validate password len 
             if len(user_password) < 6:
                 return JsonResponse({
                     'code': -1,
                     'message': "Password must has at least 6 character"
-                },status = 400)
+                },status = 200)
             prepared_update['password'] = user_password
         # Validate phoneNumber
         if user_phone != '':
@@ -384,7 +384,7 @@ def update_user(request):
             return JsonResponse({
                 'code': -1,
                 'message': "Don't have value to update"
-            },status = 400)
+            },status = 200)
         # Go update
         UserCustomer.objects.filter(**where).update(**prepared_update)
         # Get user value after update
@@ -398,7 +398,7 @@ def update_user(request):
             "code": 0,
             "message": "Update user successfully",
             "data": user_info
-        },200)
+        },status = 200)
     except LookupError :
         return JsonResponse({
             'code': -1,

@@ -921,7 +921,7 @@ def add_color(request):
             return JsonResponse({
                 'code': -1,
                 'message': "User dont't have permission to access this action"
-            })
+            },status = 403)
         if color_name == '':
             return JsonResponse({
                 'code': -1,
@@ -1029,9 +1029,12 @@ def edit_color(request):
     # Get header value
     header_value = request.headers or {}
     token = header_value.get('Authorization', '')
+
     # Get body value
     raw_data = request.body.decode('utf-8')
     data = json.loads(raw_data)
+
+
     color_id = data.get('id', '')
     color_name = data.get('name', '')
     color_status = data.get('status', '')
@@ -1691,7 +1694,7 @@ def edit_type(request):
             if found_type != {}:
                 # parse found_size
                 found_type = model_to_dict(found_type)
-                if str(found_type.get('id')) != type_id:
+                if str(found_type.get('id')) != type_name:
                     return JsonResponse({
                         'code': -1,
                         'message': f'Type {type_name} is existed'

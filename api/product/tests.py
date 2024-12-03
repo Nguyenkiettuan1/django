@@ -3,7 +3,7 @@ from itertools import product
 from ..user.models import UserCustomer, user_config
 from django.urls import reverse
 
-from rest_framework.test import APITestCase
+from rest_framework.test import APITestCase,APIClient, testcases
 from rest_framework import status
 from .models import Product, Type, Material, Color, Size, ProductDetails, ProductMaterials, ProductTypes
 import json
@@ -22,8 +22,10 @@ class AddProductTest(APITestCase):
             "phone": "1234567890",
             "status": user_config.get('status', {}).get('ACTIVE', 'active')
         }
+        
         self.admin_user = UserCustomer.objects.create(**self.admin_user_data)
         self.admin_token = jwtToken.generate_token(str(self.admin_user.id))
+
         self.user_data = {
             "email": "user@example.com",
             "password": "password123",
@@ -31,6 +33,7 @@ class AddProductTest(APITestCase):
             "phone": "1234567890",
             "status": user_config.get('status', {}).get('ACTIVE', 'active')
         }
+
         self.USER = UserCustomer.objects.create(**self.user_data)
         self.USER_TOKEN = jwtToken.generate_token(str(self.USER.id))
 
@@ -1085,5 +1088,1302 @@ class Product_edit_product_details(APITestCase):
 
 
 
+class AddColorAPITestCase(APITestCase):
 
+
+    def setUp(self):
+        """Set up test data and users."""
+        # Create a user with admin permissions
+        self.admin_user_data = {
+            "email": "admin_user@example.com",
+            "password": "password123",
+            "role": user_config.get('role', {}).get('ADMIN', 'admin'),
+            "phone": "1234567890",
+            "status": user_config.get('status', {}).get('ACTIVE', 'active')
+        }
+        self.admin_user = UserCustomer.objects.create(**self.admin_user_data)
+        self.admin_token = jwtToken.generate_token(str(self.admin_user.id))
+        self.user_data = {
+            "email": "user@example.com",
+            "password": "password123",
+            "role": user_config.get('role', {}).get('USER', 'user'),
+            "phone": "1234567890",
+            "status": user_config.get('status', {}).get('ACTIVE', 'active')
+        }
+        self.USER = UserCustomer.objects.create(**self.user_data)
+        self.USER_TOKEN = jwtToken.generate_token(str(self.USER.id))
+
+        self.url = reverse('add-color')
+
+    def test_user_without_permission(self):
+        """Test API rejects access without proper permissions."""
+        payload = {
+            "name": "Blue",
+            "status": "active"
+        }
+        response = self.client.post(
+            self.url,
+            data=payload,
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.USER_TOKEN}"
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.json(), {
+            "code": -1,
+            "message": "User dont't have permission to access this action"
+        })
+
+    def test_name_is_required(self):
+        """Test API returns an error when name is missing."""
+        payload = {
+            "status": "active"
+        }
+        response = self.client.post(
+            self.url,
+            data=payload,
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.admin_token}"
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {
+            "code": -1,
+            "message": "Name is required"
+        })
+
+    def test_color_already_exists(self):
+        """Test API returns an error when the color name already exists."""
+        # Create an existing color
+        Color.objects.create(name="Blue", status="active")
+
+        payload = {
+            "name": "Blue",
+            "status": "active"
+        }
+        response = self.client.post(
+            self.url,
+            data=payload,
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.admin_token}"
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {
+            "code": -1,
+            "message": "Color Blue is existed"
+        })
+    def test_invalid_status(self):
+        """Test API returns an error for an unsupported status value."""
+        payload = {
+            "name": "Green",
+            "status": "invalid_status"
+        }
+        response = self.client.post(
+            self.url,
+            data=payload,
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.admin_token}"
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.json(), {
+            "code": -1,
+            "message": "Status value does not support"
+        })
+
+    def test_successful_color_creation(self):
+        """Test API successfully creates a color."""
+        payload = {
+            "name": "Red",
+            "status": "active"
+        }
+        response = self.client.post(
+            self.url,
+            data=payload,
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.admin_token}"
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["code"], 0)
+        self.assertEqual(response.json()["message"], "Create color successfully")
+        self.assertEqual(response.json()["data"]["name"], "Red")
+        self.assertEqual(response.json()["data"]["status"], "active")
+
+class Get_list_color_APITestCase(APITestCase):
+
+
+    def setUp(self):
+        """Set up test data and users."""
+        # Create a user with admin permissions
+        self.admin_user_data = {
+            "email": "admin_user@example.com",
+            "password": "password123",
+            "role": user_config.get('role', {}).get('ADMIN', 'admin'),
+            "phone": "1234567890",
+            "status": user_config.get('status', {}).get('ACTIVE', 'active')
+        }
+        self.admin_user = UserCustomer.objects.create(**self.admin_user_data)
+        self.admin_token = jwtToken.generate_token(str(self.admin_user.id))
+        self.user_data = {
+            "email": "user@example.com",
+            "password": "password123",
+            "role": user_config.get('role', {}).get('USER', 'user'),
+            "phone": "1234567890",
+            "status": user_config.get('status', {}).get('ACTIVE', 'active')
+        }
+        self.USER = UserCustomer.objects.create(**self.user_data)
+        self.USER_TOKEN = jwtToken.generate_token(str(self.USER.id))
+
+        self.active_status = "active"
+        self.inactive_status = "inactive"
+
+        self.color1 = Color.objects.create(name="Red", status=self.active_status)
+        self.color2 = Color.objects.create(name="Blue", status=self.inactive_status)
+
+        self.url = reverse('get-list-color')
+
+    def test_user_without_permission(self):
+        """Test user without valid token only gets active colors."""
+        response = self.client.get(
+            self.url,
+            HTTP_AUTHORIZATION=f"Bearer {self.USER_TOKEN}"
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.json()["code"], 0)
+        self.assertEqual(len(response.json()["data"]), 1)
+        self.assertEqual(response.json()["data"][0]["name"], "Red")  # Active color
+
+    def test_invalid_status_value(self):
+        """Test API rejects an invalid status value."""
+        response = self.client.get(
+            self.url,
+            {"status": "unsupported_status"},
+            HTTP_AUTHORIZATION=f"Bearer {self.admin_token}"
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {
+            "code": -1,
+            "message": "Status value does not support"
+        })
+
+    # def test_admin_can_filter_by_status(self):
+    #     """Test admin can filter colors by status."""
+    #     response = self.client.get(
+    #         self.url,
+    #         {"status": self.inactive_status},
+    #         HTTP_AUTHORIZATION=f"Bearer {self.admin_token}"
+    #     )
+    #     self.assertEqual(response.status_code, status.HTTP_200_OK)
+    #     self.assertEqual(response.json()["code"], 0)
+    #     self.assertEqual(len(response.json()["data"]), 1)
+    #     self.assertEqual(response.json()["data"][0]["name"], "Blue")  # Inactive color
+
+    # def test_filter_by_name(self):
+    #     """Test API filters colors by name."""
+    #     response = self.client.get(
+    #         self.url,
+    #         {"name": "Red"},
+    #         HTTP_AUTHORIZATION=f"Bearer {self.admin_token}"
+    #     )
+    #     self.assertEqual(response.status_code, status.HTTP_200_OK)
+    #     self.assertEqual(response.json()["code"], 0)
+    #     self.assertEqual(len(response.json()["data"]), 1)
+    #     self.assertEqual(response.json()["data"][0]["name"], "Red")
+
+    def test_get_all_colors_as_admin(self):
+        """Test admin retrieves all colors."""
+        response = self.client.get(
+            self.url,
+            HTTP_AUTHORIZATION=f"Bearer {self.admin_token}"
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.json()["code"], 0)
+        self.assertEqual(len(response.json()["data"]), 2)
+
+
+class Edit_color_APITestCase(APITestCase):
+
+
+    def setUp(self):
+        """Set up test data and users."""
+        # Create a user with admin permissions
+        self.admin_user_data = {
+            "email": "admin_user@example.com",
+            "password": "password123",
+            "role": user_config.get('role', {}).get('ADMIN', 'admin'),
+            "phone": "1234567890",
+            "status": user_config.get('status', {}).get('ACTIVE', 'active')
+        }
+        self.admin_user = UserCustomer.objects.create(**self.admin_user_data)
+        self.admin_token = jwtToken.generate_token(str(self.admin_user.id))
+        self.user_data = {
+            "email": "user@example.com",
+            "password": "password123",
+            "role": user_config.get('role', {}).get('USER', 'user'),
+            "phone": "1234567890",
+            "status": user_config.get('status', {}).get('ACTIVE', 'active')
+        }
+        self.USER = UserCustomer.objects.create(**self.user_data)
+        self.USER_TOKEN = jwtToken.generate_token(str(self.USER.id))
+
+        self.active_status = "active"
+        self.inactive_status = "inactive"
+
+        self.color = Color.objects.create(name="Red", status=self.active_status)
+
+        self.url = reverse('edit-color')
+
+    def test_user_without_permission(self):
+        """Test user without permission cannot edit color."""
+        payload = {
+            "id": str(self.color.id),
+            "name": "Updated Red",
+            "status": "inactive"
+        }
+        response = self.client.put(
+            self.url,
+            data=json.dumps(payload),
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {self.USER_TOKEN}"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.json(), {
+            "code": -1,
+            "message": "User dont't have permission to access this action"
+        })
+
+    def test_missing_color_id(self):
+        """Test API rejects request when 'id' is missing."""
+        payload = {
+            "name": "Updated Red",
+            "status": "inactive"
+        }
+        response = self.client.put(
+            self.url,
+            data=payload,
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.admin_token}"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.json(), {
+            "code": -1,
+            "message": "Id is required"
+        })
+
+    def test_duplicate_color_name(self):
+        """Test API rejects duplicate color name."""
+        Color.objects.create(name="Blue", status="active")
+
+        payload = {
+            "id": str(self.color.id),
+            "name": "Blue",  # Duplicate name
+            "status": "inactive"
+        }
+        response = self.client.put(
+            self.url,
+            data=json.dumps(payload),
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {self.admin_token}"
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {
+            "code": -1,
+            "message": "Color Blue is existed"
+        })
+    def test_unsupported_status_value(self):
+        """Test API rejects unsupported status values."""
+        payload = {
+            "id": str(self.color.id),
+            "status": "unsupported_status"
+        }
+        response = self.client.put(
+            self.url,
+            data=json.dumps(payload),
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {self.admin_token}"
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {
+            "code": -1,
+            "message": "Status value does not support"
+        })
+
+    def test_no_data_to_update(self):
+        """Test API rejects update with no fields provided."""
+        payload = {
+            "id": str(self.color.id)
+        }
+        response = self.client.put(
+            self.url,
+            data=json.dumps(payload),
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {self.admin_token}"
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {
+            "code": -1,
+            "message": "Don't have data to update"
+        })
+    def test_color_not_found_name(self):
+        """Test API rejects color not found."""
+
+        payload = {
+            "id": str(uuid.uuid4()),
+            "name": "Blue",  # Duplicate name
+            "status": "in_active"
+        }
+        response = self.client.put(
+            self.url,
+            data=json.dumps(payload),
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {self.admin_token}"
+        )
+
+        self.assertEqual(response.status_code,200)
+        self.assertEqual(response.json(), {
+            'code': -1,
+            'message': "Color not found"
+        })
+
+    def test_successful_color_update(self):
+        """Test successful update of color details."""
+        payload = {
+            "id": str(self.color.id),
+            "name": "Updated Red",
+            "status": "in_active"
+        }
+        response = self.client.put(
+            self.url,
+            data=json.dumps(payload),
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {self.admin_token}"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.json()["code"], 0)
+        self.assertEqual(response.json()["message"], "Update color successfully")
+        self.assertEqual(response.json()["data"]["name"], "Updated Red")
+        self.assertEqual(response.json()["data"]["status"], "in_active")
+
+
+
+class AddmaterialAPITestCase(APITestCase):
+
+
+    def setUp(self):
+        """Set up test data and users."""
+        # Create a user with admin permissions
+        self.admin_user_data = {
+            "email": "admin_user@example.com",
+            "password": "password123",
+            "role": user_config.get('role', {}).get('ADMIN', 'admin'),
+            "phone": "1234567890",
+            "status": user_config.get('status', {}).get('ACTIVE', 'active')
+        }
+        self.admin_user = UserCustomer.objects.create(**self.admin_user_data)
+        self.admin_token = jwtToken.generate_token(str(self.admin_user.id))
+        self.user_data = {
+            "email": "user@example.com",
+            "password": "password123",
+            "role": user_config.get('role', {}).get('USER', 'user'),
+            "phone": "1234567890",
+            "status": user_config.get('status', {}).get('ACTIVE', 'active')
+        }
+        self.USER = UserCustomer.objects.create(**self.user_data)
+        self.USER_TOKEN = jwtToken.generate_token(str(self.USER.id))
+
+
+        self.url = reverse('add-material')
+
+
+    def test_user_without_permission(self):
+        """Test API rejects access without proper permissions."""
+        payload = {
+            "name": "material",
+            "status": "active"
+        }
+        response = self.client.post(
+            self.url,
+            data=payload,
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.USER_TOKEN}"
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {
+            "code": -1,
+            "message": "User dont't have permission to access this action"
+        })
+
+    def test_name_is_required(self):
+        """Test API returns an error when name is missing."""
+        payload = {
+            "status": "active"
+        }
+        response = self.client.post(
+            self.url,
+            data=payload,
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.admin_token}"
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {
+            "code": -1,
+            "message": "Name is required"
+        })
+
+    def test_color_already_exists(self):
+        """Test API returns an error when the color name already exists."""
+        # Create an existing color
+        Material.objects.create(name="material", status="active")
+
+        payload = {
+            "name": "material",
+            "status": "active"
+        }
+        response = self.client.post(
+            self.url,
+            data=payload,
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.admin_token}"
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {
+            "code": -1,
+            "message": "Material material is existed"
+        })
+
+    def test_invalid_status(self):
+        """Test API returns an error for an unsupported status value."""
+        payload = {
+            "name": "material",
+            "status": "invalid_status"
+        }
+        response = self.client.post(
+            self.url,
+            data=payload,
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.admin_token}"
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.json(), {
+            "code": -1,
+            "message": "Status value does not support"
+        })
+
+    def test_successful_Material_creation(self):
+        """Test API successfully creates a color."""
+        payload = {
+            "name": "material",
+            "status": "active"
+        }
+        response = self.client.post(
+            self.url,
+            data=payload,
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.admin_token}"
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["code"], 0)
+        self.assertEqual(response.json()["message"], "Create material successfully")
+        self.assertEqual(response.json()["data"]["name"], "material")
+        self.assertEqual(response.json()["data"]["status"], "active")
+
+class Get_list_Materials_APITestCase(APITestCase):
+
+
+    def setUp(self):
+        """Set up test data and users."""
+        # Create a user with admin permissions
+        self.admin_user_data = {
+            "email": "admin_user@example.com",
+            "password": "password123",
+            "role": user_config.get('role', {}).get('ADMIN', 'admin'),
+            "phone": "1234567890",
+            "status": user_config.get('status', {}).get('ACTIVE', 'active')
+        }
+        self.admin_user = UserCustomer.objects.create(**self.admin_user_data)
+        self.admin_token = jwtToken.generate_token(str(self.admin_user.id))
+        self.user_data = {
+            "email": "user@example.com",
+            "password": "password123",
+            "role": user_config.get('role', {}).get('USER', 'user'),
+            "phone": "1234567890",
+            "status": user_config.get('status', {}).get('ACTIVE', 'active')
+        }
+        self.USER = UserCustomer.objects.create(**self.user_data)
+        self.USER_TOKEN = jwtToken.generate_token(str(self.USER.id))
+
+        self.active_status = "active"
+        self.inactive_status = "in_active"
+
+        self.Material1 = Material.objects.create(name="Red", status=self.active_status)
+        self.Material2 = Material.objects.create(name="Blue", status=self.active_status)
+
+        self.url = reverse('get-list-material')
+
+    def test_user_without_permission(self):
+        """Test user without valid token only gets active colors."""
+        response = self.client.get(
+            self.url,
+            HTTP_AUTHORIZATION=f"Bearer {self.USER_TOKEN}"
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.json()["code"], 0)
+        self.assertEqual(len(response.json()["data"]), 2)
+        self.assertEqual(response.json()["data"][0]["name"], "Red")  # Active color
+
+    def test_invalid_status_value(self):
+        """Test API rejects an invalid status value."""
+        response = self.client.get(
+            self.url,
+            {"status": "unsupported_status"},
+            HTTP_AUTHORIZATION=f"Bearer {self.admin_token}"
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {
+            "code": -1,
+            "message": "Status value does not support"
+        })
+
+    # def test_admin_can_filter_by_status(self):
+    #     """Test admin can filter colors by status."""
+    #     response = self.client.get(
+    #         self.url,
+    #         {"status": self.inactive_status},
+    #         HTTP_AUTHORIZATION=f"Bearer {self.admin_token}"
+    #     )
+    #     self.assertEqual(response.status_code, status.HTTP_200_OK)
+    #     self.assertEqual(response.json()["code"], 0)
+    #     self.assertEqual(len(response.json()["data"]), 1)
+    #     self.assertEqual(response.json()["data"][0]["name"], "Blue")  # Inactive color
+
+    # def test_filter_by_name(self):
+    #     """Test API filters colors by name."""
+    #     response = self.client.get(
+    #         self.url,
+    #         {"name": "Red"},
+    #         HTTP_AUTHORIZATION=f"Bearer {self.admin_token}"
+    #     )
+    #     self.assertEqual(response.status_code, status.HTTP_200_OK)
+    #     self.assertEqual(response.json()["code"], 0)
+    #     self.assertEqual(len(response.json()["data"]), 1)
+    #     self.assertEqual(response.json()["data"][0]["name"], "Red")
+
+    def test_get_all_colors_as_admin(self):
+        """Test admin retrieves all colors."""
+        response = self.client.get(
+            self.url,
+            HTTP_AUTHORIZATION=f"Bearer {self.admin_token}"
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.json()["code"], 0)
+        self.assertEqual(len(response.json()["data"]), 2)
+
+
+class Edit_materials_APITestCase(APITestCase):
+
+
+    def setUp(self):
+        """Set up test data and users."""
+        # Create a user with admin permissions
+        self.admin_user_data = {
+            "email": "admin_user@example.com",
+            "password": "password123",
+            "role": user_config.get('role', {}).get('ADMIN', 'admin'),
+            "phone": "1234567890",
+            "status": user_config.get('status', {}).get('ACTIVE', 'active')
+        }
+        self.admin_user = UserCustomer.objects.create(**self.admin_user_data)
+        self.admin_token = jwtToken.generate_token(str(self.admin_user.id))
+        self.user_data = {
+            "email": "user@example.com",
+            "password": "password123",
+            "role": user_config.get('role', {}).get('USER', 'user'),
+            "phone": "1234567890",
+            "status": user_config.get('status', {}).get('ACTIVE', 'active')
+        }
+        self.USER = UserCustomer.objects.create(**self.user_data)
+        self.USER_TOKEN = jwtToken.generate_token(str(self.USER.id))
+
+        self.active_status = "active"
+        self.inactive_status = "inactive"
+
+        self.material = Material.objects.create(name="Red", status=self.active_status)
+
+        self.url = reverse('edit-material')
+
+    def test_user_without_permission(self):
+        """Test user without permission cannot edit color."""
+        payload = {
+            "id": str(self.material.id),
+            "name": "Updated Red",
+            "status": "in_active"
+        }
+        response = self.client.put(
+            self.url,
+            data=json.dumps(payload),
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {self.USER_TOKEN}"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.json(), {
+            "code": -1,
+            "message": "User dont't have permission to access this action"
+        })
+
+    def test_missing_materials_id(self):
+        """Test API rejects request when 'id' is missing."""
+        payload = {
+            "name": "Updated Red",
+            "status": "in_active"
+        }
+        response = self.client.put(
+            self.url,
+            data=payload,
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.admin_token}"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.json(), {
+            "code": -1,
+            "message": "Id is required"
+        })
+
+    def test_duplicate_materials_name(self):
+        """Test API rejects duplicate color name."""
+        Material.objects.create(name="Blue", status="active")
+
+        payload = {
+            "id": str(self.material.id),
+            "name": "Blue",  # Duplicate name
+            "status": "active"
+        }
+        response = self.client.put(
+            self.url,
+            data=json.dumps(payload),
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {self.admin_token}"
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {
+            "code": -1,
+            "message": "Material Blue is existed"
+        })
+    def test_unsupported_status_value(self):
+        """Test API rejects unsupported status values."""
+        payload = {
+            "id": str(self.material.id),
+            "status": "unsupported_status"
+        }
+        response = self.client.put(
+            self.url,
+            data=json.dumps(payload),
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {self.admin_token}"
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {
+            "code": -1,
+            "message": "Status value does not support"
+        })
+
+    def test_no_data_to_update(self):
+        """Test API rejects update with no fields provided."""
+        payload = {
+            "id": str(self.material.id)
+        }
+        response = self.client.put(
+            self.url,
+            data=json.dumps(payload),
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {self.admin_token}"
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {
+            "code": -1,
+            "message": "Don't have data to update"
+        })
+    def test_color_not_found_name(self):
+        """Test API rejects color not found."""
+
+        payload = {
+            "id": str(uuid.uuid4()),
+            "name": "Blue",  # Duplicate name
+            "status": "in_active"
+        }
+        response = self.client.put(
+            self.url,
+            data=json.dumps(payload),
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {self.admin_token}"
+        )
+
+        self.assertEqual(response.status_code,200)
+        self.assertEqual(response.json(), {
+            'code': -1,
+            'message': "Material not found"
+        })
+
+    def test_successful_materials_update(self):
+        """Test successful update of color details."""
+        payload = {
+            "id": str(self.material.id),
+            "name": "Updated Red",
+            "status": "in_active"
+        }
+        response = self.client.put(
+            self.url,
+            data=json.dumps(payload),
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {self.admin_token}"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.json()["code"], 0)
+        self.assertEqual(response.json()["message"], "Update material successfully")
+        self.assertEqual(response.json()["data"]["name"], "Updated Red")
+        self.assertEqual(response.json()["data"]["status"], "in_active")
+
+class add_typeAPITestCase(APITestCase):
+
+
+    def setUp(self):
+        """Set up test data and users."""
+        # Create a user with admin permissions
+        self.admin_user_data = {
+            "email": "admin_user@example.com",
+            "password": "password123",
+            "role": user_config.get('role', {}).get('ADMIN', 'admin'),
+            "phone": "1234567890",
+            "status": user_config.get('status', {}).get('ACTIVE', 'active')
+        }
+        self.admin_user = UserCustomer.objects.create(**self.admin_user_data)
+        self.admin_token = jwtToken.generate_token(str(self.admin_user.id))
+        self.user_data = {
+            "email": "user@example.com",
+            "password": "password123",
+            "role": user_config.get('role', {}).get('USER', 'user'),
+            "phone": "1234567890",
+            "status": user_config.get('status', {}).get('ACTIVE', 'active')
+        }
+        self.USER = UserCustomer.objects.create(**self.user_data)
+        self.USER_TOKEN = jwtToken.generate_token(str(self.USER.id))
+
+        self.type = Type.objects.create(name= 'short',status='active')
+        self.url = reverse('add-type')
+
+
+    def test_user_without_permission(self):
+        """Test user without permission cannot add a type."""
+        payload = {"id": str(self.type.id),
+                   "name": str(self.type.name),
+                   "status": "active"
+                }
+        response = self.client.post(
+            self.url,
+            data=json.dumps(payload),
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {self.USER_TOKEN}",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.json(), {
+            "code": -1,
+            "message": "User dont't have permission to access this action"
+        })
+
+
+    def test_name_is_required(self):
+        """Test API rejects request if 'name' is not provided."""
+        payload = {"status": "active"}
+        response = self.client.post(
+            self.url,
+            data= json.dumps(payload),
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {self.admin_token}",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.json(), {
+            "code": -1,
+            "message": "Name is required"
+        })
+
+
+    def test_type_is_existed(self):
+        """Test API rejects creating a duplicate type."""
+
+        payload = {"name": str(self.type.name), "status": "active"}
+        response = self.client.post(
+            self.url,
+            data=json.dumps(payload),
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {self.admin_token}",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.json(), {
+            "code": -1,
+            "message": f"Type {self.type.name} is existed"
+        })
+
+    def test_invalid_status(self):
+        """Test API returns an error for an unsupported status value."""
+        payload = {
+            "name": "test1",
+            "status": "invalid_status"
+        }
+        response = self.client.post(
+            self.url,
+            data=json.dumps(payload),
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {self.admin_token}"
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.json(), {
+            "code": -1,
+            "message": "Status value does not support"
+        })
+
+    def test_create_type_successfully(self):
+        """Test successful creation of a type."""
+        payload = {"name": "new_type", "status": "active"}
+        response = self.client.post(
+            self.url,
+            data=json.dumps(payload),
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {self.admin_token}",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["code"], 0)
+        self.assertEqual(response.json()["message"], "Create type successfully")
+
+
+
+class Get_list_Types_APITestCase(APITestCase):
+
+
+    def setUp(self):
+        """Set up test data and users."""
+        # Create a user with admin permissions
+        self.admin_user_data = {
+            "email": "admin_user@example.com",
+            "password": "password123",
+            "role": user_config.get('role', {}).get('ADMIN', 'admin'),
+            "phone": "1234567890",
+            "status": user_config.get('status', {}).get('ACTIVE', 'active')
+        }
+        self.admin_user = UserCustomer.objects.create(**self.admin_user_data)
+        self.admin_token = jwtToken.generate_token(str(self.admin_user.id))
+        self.user_data = {
+            "email": "user@example.com",
+            "password": "password123",
+            "role": user_config.get('role', {}).get('USER', 'user'),
+            "phone": "1234567890",
+            "status": user_config.get('status', {}).get('ACTIVE', 'active')
+        }
+        self.USER = UserCustomer.objects.create(**self.user_data)
+        self.USER_TOKEN = jwtToken.generate_token(str(self.USER.id))
+
+        self.active_status = "active"
+        self.inactive_status = "in_active"
+        self.active_type = Type.objects.create(name="ActiveType", status="ACTIVE")
+        self.inactive_type = Type.objects.create(name="InactiveType", status="INACTIVE")
+
+        self.url = reverse('get-list-type')
+
+    def test_get_list_type_successfully_admin(self):
+        """Test retrieving the type list as an admin."""
+        response = self.client.get(path=self.url,
+                                    content_type="application/json",
+                                   HTTP_AUTHORIZATION=f"Bearer {self.admin_token}")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.json()["code"], 0)
+        self.assertEqual(response.json()["message"], "Get list type successfully")
+        self.assertEqual(response.json()["pagination"]["total"], 2)
+
+
+    def test_invalid_status_value(self):
+        """Test API rejects an invalid status value."""
+        response = self.client.get(
+            self.url,
+            {"status": "unsupported_status"},
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {self.admin_token}"
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {
+            "code": -1,
+            "message": "Status value does not support"
+        })
+
+
+class EditTypeTests(APITestCase):
+    def setUp(self):
+        # URL for the API endpoint
+        # Create a user with admin permissions
+        self.admin_user_data = {
+            "email": "admin_user@example.com",
+            "password": "password123",
+            "role": user_config.get('role', {}).get('ADMIN', 'admin'),
+            "phone": "1234567890",
+            "status": user_config.get('status', {}).get('ACTIVE', 'active')
+        }
+        self.admin_user = UserCustomer.objects.create(**self.admin_user_data)
+        self.admin_token = jwtToken.generate_token(str(self.admin_user.id))
+        self.user_data = {
+            "email": "user@example.com",
+            "password": "password123",
+            "role": user_config.get('role', {}).get('USER', 'user'),
+            "phone": "1234567890",
+            "status": user_config.get('status', {}).get('ACTIVE', 'active')
+        }
+        self.USER = UserCustomer.objects.create(**self.user_data)
+        self.USER_TOKEN = jwtToken.generate_token(str(self.USER.id))
+
+        self.active_status = "active"
+        self.inactive_status = "in_active"
+        self.active_type = Type.objects.create(name="ActiveType", status=self.active_status)
+        self.inactive_type = Type.objects.create(name="InactiveType", status = self.inactive_status)
+
+        self.url = reverse('edit-type')
+
+    def test_permission_denied(self):
+        """Test response when the user does not have permission to edit a type."""
+        data = {"id": str(self.active_type.id), "name": "NewName"}
+        response = self.client.put(self.url, data=json.dumps(data),
+                                   content_type="application/json",
+                                   HTTP_AUTHORIZATION=f"Bearer {self.USER_TOKEN}"
+                                   )
+        self.assertEqual(response.status_code,200)
+        self.assertEqual(response.json(), {
+            "code": -1,
+            "message": "User dont't have permission to access this action"
+        })
+
+    def test_missing_id(self):
+        """Test error when `id` is missing."""
+        data = {"name": "NewName"}
+        response = self.client.put(self.url, data=json.dumps(data),
+                                   content_type="application/json",
+                                   HTTP_AUTHORIZATION=f"Bearer {self.admin_token}"
+                                   )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {
+            "code": -1,
+            "message": "Id is required"
+        })
+
+    def test_name_already_exists(self):
+        """Test error when a type name already exists."""
+        # Creating a type to test duplicate name handling
+        existing_type = Type.objects.create(name="ActiveType", status="active")
+
+        data = {"id": str(existing_type.id), "name": existing_type.name}
+        response = self.client.put(
+            self.url,
+            data=json.dumps(data),
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {self.admin_token}"
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {
+            "code": -1,
+            "message": f"Type {existing_type.name} is existed"
+        })
+
+    def test_invalid_status_value(self):
+        """Test error when an unsupported status value is provided."""
+        data = {"id": str(self.active_type.id), "status": "INVALID_STATUS"}
+        response = self.client.put(self.url, data=json.dumps(data), content_type="application/json", HTTP_AUTHORIZATION=f"Bearer {self.admin_token}")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {
+            "code": -1,
+            "message": "Status value does not support"
+        })
+
+    def test_no_data_to_update(self):
+        """Test error when no data is provided for updating."""
+        data = {"id": str(self.active_type.id)}
+        response = self.client.put(self.url, data=json.dumps(data), content_type="application/json",
+                                   HTTP_AUTHORIZATION=f"Bearer {self.admin_token}")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {
+            "code": -1,
+            "message": "Don't have data to update"
+        })
+
+    def test_type_not_found(self):
+        """Test error when the type ID does not exist."""
+        data = {"id": str(uuid.uuid4()), "name": "NonExistentType"}
+        response = self.client.put(self.url, data=json.dumps(data), content_type="application/json",
+                                   HTTP_AUTHORIZATION=f"Bearer {self.admin_token}")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {
+            "code": -1,
+            "message": "Type not found"
+        })
+
+    def test_update_type_successfully(self):
+        """Test successfully updating a type."""
+        data = {"id": str(self.active_type.id), "name": "UpdatedType", "status": self.inactive_status}
+        response = self.client.put(self.url, data=json.dumps(data), content_type="application/json",
+                                   HTTP_AUTHORIZATION=f"Bearer {self.admin_token}")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.json()["code"], 0)
+        self.assertEqual(response.json()["message"], "Update type successfully")
+        self.assertEqual(response.json()["data"]["name"], "UpdatedType")
+        self.assertEqual(response.json()["data"]["status"], "in_active")
+
+
+class add_sizeTests(APITestCase):
+    def setUp(self):
+        # URL for the API endpoint
+        # Create a user with admin permissions
+        self.admin_user_data = {
+            "email": "admin_user@example.com",
+            "password": "password123",
+            "role": user_config.get('role', {}).get('ADMIN', 'admin'),
+            "phone": "1234567890",
+            "status": user_config.get('status', {}).get('ACTIVE', 'active')
+        }
+        self.admin_user = UserCustomer.objects.create(**self.admin_user_data)
+        self.admin_token = jwtToken.generate_token(str(self.admin_user.id))
+        self.user_data = {
+            "email": "user@example.com",
+            "password": "password123",
+            "role": user_config.get('role', {}).get('USER', 'user'),
+            "phone": "1234567890",
+            "status": user_config.get('status', {}).get('ACTIVE', 'active')
+        }
+        self.USER = UserCustomer.objects.create(**self.user_data)
+        self.USER_TOKEN = jwtToken.generate_token(str(self.USER.id))
+
+        self.active_status = "active"
+        self.inactive_status = "in_active"
+        self.size = Size.objects.create(name="size_test", status=self.active_status)
+
+        self.url = reverse('add-size')
+
+    def test_permission_denied(self):
+        """Test adding a size without admin privileges."""
+        data = {"id": str(self.size.id), "name": self.size.name, "status": self.size.status}
+        response = self.client.post(self.url, data=json.dumps(data), content_type="application/json",
+                                   HTTP_AUTHORIZATION=f"Bearer {self.USER_TOKEN}")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {
+            'code': -1,
+            'message': "User dont't have permission to access this action"
+        })
+
+    def test_missing_name(self):
+        """Test adding a size without providing the name field."""
+        data = {"id": str(self.size.id), "status": self.size.status}
+        response = self.client.post(self.url, data=json.dumps(data), content_type="application/json",
+                                    HTTP_AUTHORIZATION=f"Bearer {self.admin_token}")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {
+            'code': -1,
+            'message': "Name is required"
+        })
+
+    def test_size_already_exists(self):
+        """Test adding a size with a name that already exists."""
+        data = {"id": str(self.size.id),"name": self.size.name, "status": self.size.status}
+        response = self.client.post(self.url, data=json.dumps(data), content_type="application/json",
+                                    HTTP_AUTHORIZATION=f"Bearer {self.admin_token}")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {
+            'code': -1,
+            'message': f'Size {self.size.name} is existed'
+        })
+
+    def test_invalid_status(self):
+        """Test adding a size with an invalid status."""
+        data = {"id": str(uuid.uuid4()), "name": "new", "status": "invalidate"}
+        response = self.client.post(self.url, data=json.dumps(data), content_type="application/json",
+                                    HTTP_AUTHORIZATION=f"Bearer {self.admin_token}")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {
+            'code': -1,
+            'message': "Status value does not support"
+        })
+
+    def test_create_size_successfully(self):
+        """Test adding a size successfully with valid data."""
+        data = { "name": "Medium", "status": self.active_status}
+        response = self.client.post(self.url, data=json.dumps(data), content_type="application/json",
+                                    HTTP_AUTHORIZATION=f"Bearer {self.admin_token}")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['code'], 0)
+        self.assertEqual(response.json()['message'], "Create size successfully")
+        self.assertEqual(response.json()['data']['name'], 'Medium')
+        self.assertEqual(response.json()['data']['status'], self.active_status)
+
+
+class get_list_sizeTests(APITestCase):
+    def setUp(self):
+        # URL for the API endpoint
+        # Create a user with admin permissions
+        self.admin_user_data = {
+            "email": "admin_user@example.com",
+            "password": "password123",
+            "role": user_config.get('role', {}).get('ADMIN', 'admin'),
+            "phone": "1234567890",
+            "status": user_config.get('status', {}).get('ACTIVE', 'active')
+        }
+        self.admin_user = UserCustomer.objects.create(**self.admin_user_data)
+        self.admin_token = jwtToken.generate_token(str(self.admin_user.id))
+        self.user_data = {
+            "email": "user@example.com",
+            "password": "password123",
+            "role": user_config.get('role', {}).get('USER', 'user'),
+            "phone": "1234567890",
+            "status": user_config.get('status', {}).get('ACTIVE', 'active')
+        }
+        self.USER = UserCustomer.objects.create(**self.user_data)
+        self.USER_TOKEN = jwtToken.generate_token(str(self.USER.id))
+
+        self.active_status = "active"
+        self.inactive_status = "in_active"
+        self.size = Size.objects.create(name="size_test", status=self.active_status)
+
+        Size.objects.create(name="Large", status=self.active_status)
+        Size.objects.create(name="Medium", status=self.active_status)
+        Size.objects.create(name="Small", status="inactive")
+
+        self.url = reverse('get-list-size')
+
+    def test_invalid_status_value(self):
+        """Test API rejects an invalid status value."""
+        response = self.client.get(
+            self.url,
+            {"status": "unsupported_status"},
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {self.admin_token}"
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {
+            "code": -1,
+            "message": "Status value does not support"
+        })
+    def test_get_list_type_successfully_admin(self):
+        """Test retrieving the type list as an admin."""
+        response = self.client.get(path=self.url,
+                                    content_type="application/json",
+                                   HTTP_AUTHORIZATION=f"Bearer {self.admin_token}")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.json()["code"], 0)
+        self.assertEqual(response.json()["message"], "Get list size successfully")
+        self.assertEqual(response.json()["pagination"]["total"], 4)
+
+
+class EditSizeAPITest(APITestCase):
+    def setUp(self):
+        # URL for the API endpoint
+        # Create a user with admin permissions
+        self.admin_user_data = {
+            "email": "admin_user@example.com",
+            "password": "password123",
+            "role": user_config.get('role', {}).get('ADMIN', 'admin'),
+            "phone": "1234567890",
+            "status": user_config.get('status', {}).get('ACTIVE', 'active')
+        }
+        self.admin_user = UserCustomer.objects.create(**self.admin_user_data)
+        self.admin_token = jwtToken.generate_token(str(self.admin_user.id))
+        self.user_data = {
+            "email": "user@example.com",
+            "password": "password123",
+            "role": user_config.get('role', {}).get('USER', 'user'),
+            "phone": "1234567890",
+            "status": user_config.get('status', {}).get('ACTIVE', 'active')
+        }
+        self.USER = UserCustomer.objects.create(**self.user_data)
+        self.USER_TOKEN = jwtToken.generate_token(str(self.USER.id))
+        self.url = reverse('edit-size')
+        self.size_data = {'name': 'Large', 'status': 'active'}
+        # Create a size to be used in tests
+        self.size = Size.objects.create(**self.size_data)
+
+    def test_missing_auth_token(self):
+        """Test that user gets a permission error without an authorization token."""
+        response = self.client.put(self.url, {
+            'id': str(self.size.id),
+            'name': 'Medium',
+            'status': 'inactive'
+        },
+        format ="json",
+        HTTP_AUTHORIZATION=f"Bearer {self.USER_TOKEN}")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {'code': -1, 'message': "User dont't have permission to access this action"})
+
+    def test_missing_size_id(self):
+        """Test that user gets an error if size id is missing."""
+        response = self.client.put(self.url, {
+            'name': 'Medium',
+            'status': 'inactive'
+        },
+        format ="json",
+        HTTP_AUTHORIZATION=f"Bearer {self.admin_token}")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {'code': -1, 'message': 'Id is required'})
+
+    def test_size_name_exists(self):
+        """Test that user gets an error if the size name already exists."""
+        Size.objects.create(name='Medium', status='active')
+        response = self.client.put(self.url, {
+            'id': str(self.size.id),
+            'name': 'Medium',
+            'status': 'inactive'
+        },format ="json", HTTP_AUTHORIZATION=f"Bearer {self.admin_token}")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {'code': -1, 'message': 'Size Medium is existed'})
+
+    def test_invalid_status(self):
+        """Test that user gets an error if the status value is invalid."""
+        response = self.client.put(self.url, {
+            'id': str(self.size.id),
+            'name': 'Medium',
+            'status': 'invalid_status'
+        },format ="json", HTTP_AUTHORIZATION=f"Bearer {self.admin_token}")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {'code': -1, 'message': 'Status value does not support'})
+
+    def test_no_data_to_update(self):
+        """Test that user gets an error if there's no data to update."""
+        response = self.client.put(self.url, {
+            'id': str(self.size.id)
+        },format ="json", HTTP_AUTHORIZATION=f"Bearer {self.admin_token}")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {'code': -1, 'message': "Don't have data to update"})
+
+    def test_size_not_found(self):
+        """Test that user gets an error if the size to update is not found."""
+        response = self.client.put(self.url, {
+            'id': f'{uuid.uuid4()}',
+            'name': 'Medium',
+            'status': 'in_active'
+        },format ="json", HTTP_AUTHORIZATION=f"Bearer {self.admin_token}")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {'code': -1, 'message': 'Size not found'})
+
+    def test_successful_update(self):
+        """Test a successful size update."""
+        response = self.client.put(self.url, {
+            'id': f'{self.size.id}',
+            'name': 'Medium',
+            'status': 'in_active'
+        },format ="json", HTTP_AUTHORIZATION=f"Bearer {self.admin_token}")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.json()['code'], 0)
+        self.assertEqual(response.json()['message'], 'Update size successfully')
+        self.assertEqual(response.json()['data']['name'], 'Medium')
+        self.assertEqual(response.json()['data']['status'], 'in_active')
 
