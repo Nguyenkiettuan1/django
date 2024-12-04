@@ -142,6 +142,9 @@ def get_list_cart(request):
     token = header_value.get('Authorization', '')
     # Get param
     params_value = request.GET or {}
+    parse_params = dict(params_value)
+    cart_id = parse_params.get('id[]', [])
+
     try:
         # Validate authen
         if not customPermission.is_authenticated(request, token):
@@ -151,9 +154,15 @@ def get_list_cart(request):
             })
         # get uid from request
         req_uid = request.content_params.get('uid', '')
+        # Init prepared_query
+        prepared_query = {}
+        if not Obj.is_empty(cart_id):
+            prepared_query['id__in'] = cart_id
+        
         # Find all cart by user id
         found_user_carts = list(
             Cart.objects.filter(
+                **prepared_query,
                 user = req_uid,
                 status = cart_config.get('status').get('ACTIVE')
             ).select_related('product_details')

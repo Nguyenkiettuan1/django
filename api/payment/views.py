@@ -11,7 +11,7 @@ from ..product.models import Product, ProductDetails, Color, Size, Material, Typ
 from ..cart.models import Cart, cart_config
 from ..utils import Obj, Int, UUIDEncoder
 from ..user.models import UserCustomer
-
+from django.db.models import F
 class PaymentMethodViewSet(viewsets.ModelViewSet):
     queryset = PaymentMethod.objects.all()
     serializer_class = PaymentMethodSerializer
@@ -232,7 +232,7 @@ def add_user_payment(request):
     raw_data = request.body.decode('utf-8')
     data = json.loads(raw_data)
     # Only payment value
-    payment_id = data.get('id', '')
+    payment_id = data.get('paymentMethod', '')
     user_payment_details = data.get('paymentDetails', '')
     user_payment_status = data.get('status', '')
 
@@ -301,6 +301,84 @@ def add_user_payment(request):
         })
 
 @csrf_exempt
+def edit_user_payment(request):
+    if not request.method == 'PUT':
+        return JsonResponse({'error': 'Send a valid PUT request'})
+    # Get header value
+    header_value = request.headers or {}
+    token = header_value.get('Authorization', '')
+    # Get body value
+    raw_data = request.body.decode('utf-8')
+    data = json.loads(raw_data)
+    # Only payment value
+    user_payment_id = data.get('id', '')
+    user_payment_details = data.get('paymentDetails', {})
+    user_payment_status = data.get('status', '')
+    try:
+        # Validate authen
+        if not customPermission.is_authenticated(request, token):
+            return JsonResponse({
+                'code': -1,
+                'message': "User dont't have permission to access this action"
+            })
+        #  Get req user
+        req_uid = request.content_params.get('uid', '')
+        # Init prepared query
+        prepared_query = {
+            "id": user_payment_id,
+            "user": req_uid,
+            "status": user_payments_config.get('status').get('ACTIVE'),
+        }
+        # Only admin can access this field
+        # Go validate payment field
+        if user_payment_id == '':
+            return JsonResponse({
+                'code': -1,
+                'message': "User payment id is required"
+            })
+        # Go found user payment
+        found_payments = UserPayments.objects.filter(**prepared_query) or []
+        if found_payments == []:
+            return JsonResponse({
+                'code': -1,
+                'message': "User payment not found"
+            })
+        detect_user_payment = model_to_dict(found_payments.first())
+        detect_user_payment_details = detect_user_payment.get('payment_details') or {}
+        # Init prepared_update
+        prepared_update = {}
+        if not Obj.is_empty(user_payment_details):
+            prepared_update['payment_details'] = {
+                **detect_user_payment_details,
+                **user_payment_details
+            }
+        if user_payment_status != '':
+            if not user_payment_status in list(user_payments_config.get('status', {}).values()):
+                return JsonResponse({
+                    'code': -1,
+                    'message': "Status does not support"
+                })
+            prepared_update['status'] = user_payment_status
+        # Go update
+        update_user_payment = found_payments.update(**prepared_update)
+        # Get updated user payment
+        updated_user_payment = UserPayments.objects.filter(
+            id= user_payment_id,
+            user= req_uid,
+        ).first() or {}
+        # return
+        return JsonResponse({
+            'code': 0,
+            'message': "Get list user payment successfully",
+            'data': model_to_dict(updated_user_payment)
+        })
+    except LookupError :
+        return JsonResponse({
+            'code': -1,
+            'message': LookupError.__doc__
+        })
+
+@csrf_exempt
 def get_list_user_payment(request):
     if not request.method == 'GET':
         return JsonResponse({'error': 'Send a valid GET request'})
@@ -332,19 +410,19 @@ def get_list_user_payment(request):
             "status": user_payments_config.get('status').get('ACTIVE')
         }
         # Only admin can access this field
-        if user_id != '' or user_payment_status != '':
+        if (user_id != '' and user_id != req_uid) or user_payment_status != '':
             if not customPermission.is_role_admin(request, token):
                 return JsonResponse({
                     'code': -1,
                     'message': "User dont't have permission to access this action"
                 })
-            found_users = UserCustomer.objects.filter(id = req_uid).first() or {}
+            found_users = UserCustomer.objects.filter(id = user_id).first() or {}
             if found_users == {}:
                 return JsonResponse({
                         'code': -1,
                         'message': "User not found"
                     })
-                prepared_query["user"] = user_id
+            prepared_query["user"] = user_id
             if user_payment_status != '':
                 if not user_payment_status in list(user_payments_config.get('status', {}).values()):
                     return JsonResponse({
@@ -370,12 +448,14 @@ def get_list_user_payment(request):
         found_user_payments = UserPayments.objects.filter(**prepared_query).select_related('payment_method')
         # Count total
         total_count = found_user_payments.count()
+        # Parse it
+        annotated_payments = found_user_payments.annotate(payment_method_name=F('payment_method__name'))
         # Paginate
-        user_payments = list(found_user_payments.values()[offset:offset + limit])
+        user_payments = list(annotated_payments.values()[offset:offset + limit])
         # return
         return JsonResponse({
             'code': 0,
-            'message': "Get list user payment successfully",
+            'message': "Update user payment successfully",
             'data': user_payments,
             'pagination': {
                 'page': page,
