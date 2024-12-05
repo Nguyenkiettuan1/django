@@ -119,27 +119,28 @@ def add_order(request):
             })
         if not Obj.is_empty(carts):
             # Go found user cart
-            found_user_carts = list(Cart.objects.filter(
-                id_in = carts,
+            found_user_carts = Cart.objects.filter(
+                id__in = carts,
                 user = req_uid,
                 status = cart_config.get('status').get('ACTIVE')
-            ).select_related('product_details'))
-            if len(found_user_carts) < len(carts):
+            ).select_related('product_details')
+            parsed_found_user_carts = list(found_user_carts)
+            if len(parsed_found_user_carts) < len(carts):
                 return JsonResponse({
                     'code': -1,
                     'message': "Missing cart value"
                 })
-            for found_cart in found_user_carts:
+            for found_cart in parsed_found_user_carts:
                 # Parse cart info
                 cart_info = model_to_dict(found_cart)
                 product_details_info = found_cart.product_details
                 product_info = model_to_dict(product_details_info.product)
                 # Parse product details info
-                product_details_info = model_to_dict(product_details_info)
+                parse_product_details_info = model_to_dict(product_details_info)
                 # Get cart qty 
                 cart_qty = cart_info.get('qty')
                 # get product details qty 
-                product_details_qty = product_details_info.get('qty')
+                product_details_qty = parse_product_details_info.get('qty')
                 product_details_status = product_info.get('status')
                 # Get product price
                 product_price = product_info.get('price')
@@ -173,7 +174,7 @@ def add_order(request):
             # Detect user_payment
             user_payment_info = model_to_dict(found_user_payment)
             # Set final address
-            final_address = user_payment_info.get(product_details, {}).get('address', '')
+            final_address = user_payment_info.get('product_details', {}).get('address', '')
             # Detect payment method
             payment_method = model_to_dict(found_user_payment.payment_method)
             # Get payment name
@@ -181,14 +182,14 @@ def add_order(request):
             # Add payment info
             prepared_order["payment"] = found_user_payment
             # Alter balance info
-            if payment_method_name in list(payment_config.get('is_prepaid', {}).values()):
+            if payment_method_name in payment_config.get('is_prepaid', {}):
                 balance_info = {
                     "prepaid" : order_total,
                     "total": order_total,
                     "remaining": 0.0
                 }
         if order_address != '':
-            final_address == order_address
+            final_address = order_address
         else:
             if final_address == '':
                 return JsonResponse({
@@ -210,6 +211,7 @@ def add_order(request):
             product_details_info = detail.get('product_details')
             detect_product_detail = model_to_dict(product_details_info)
             product_detail_qty = detect_product_detail.get('qty')
+            product_detail_id = detect_product_detail.get('id')
             # Create order details
             create_order_details = OrderDetails.objects.create(
                 **detail,
@@ -218,13 +220,17 @@ def add_order(request):
             # Update product detail qty
             new_qty = product_detail_qty - detail.get('qty')
             # Go update product details qty
-            product_details_info.update(qty = new_qty)
-            created_order_details.append(create_order_details)
+            ProductDetails.objects.filter(id = product_detail_id).update(qty = new_qty)
+            created_order_details.append(model_to_dict(create_order_details))
+        # update cart
+        found_user_carts.update(
+            status = cart_config.get('status').get('IN_ACTIVE')
+        )
         return JsonResponse({
             'code': 0,
-            'message': "Create order success fully",
+            'message': "Create order successfully",
             'data': {
-                **create_order,
+                **model_to_dict(create_order),
                 "details": created_order_details
             },
         })
