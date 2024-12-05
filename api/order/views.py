@@ -17,6 +17,7 @@ import json
 from ..utils import Obj, Int, UUIDEncoder, Date
 from ..policies import customPermission
 from ..jwt_token import jwtToken
+from django.db.models import F
 
 # ViewSet for Product
 class orderViewSet(viewsets.ModelViewSet):
@@ -251,6 +252,7 @@ def get_list_order(request):
     params_value = request.GET or {}
     # Only payment value
     order_id = params_value.get('order', '')
+    order_status = params_value.get('status', '')
     from_date = params_value.get('fromDate', '')
     to_date = params_value.get('toDate', '')
     # Pagination
@@ -290,11 +292,12 @@ def get_list_order(request):
                 })
             prepared_query['created_at__lte'] = to_date
         # Go found order
-        found_orders = Order.objects.filter(**prepared_query)
+        found_orders = Order.objects.filter(**prepared_query).select_related('payment')
         # Count total
         total_count = found_orders.count()
+        annotated_orders  = found_orders.annotate(payment_method_name=F('payment__payment_method__name'))
         # Paginate
-        detect_orders = list(found_orders.values()[offset:offset + limit])
+        detect_orders = list(annotated_orders.values()[offset:offset + limit])
         # return
         return JsonResponse({
             'code': 0,
@@ -352,14 +355,21 @@ def order_info(request):
                 'code': -1,
                 'message': "Order not found"
             })
+        found_orders = model_to_dict(found_orders)
         # Go found order details
-        found_order_details = list(OrderDetails.objects.filter(order = order_id))
+        found_order_details = OrderDetails.objects.filter(order = order_id).select_related('product_details')
+        annotated_order_details  = found_order_details.annotate(    product_name=F('product_details__product__name'),
+                                                                    product_price=F('product_details__product__price'),
+                                                                    product_size=F('product_details__size__name'),
+                                                                    product_color=F('product_details__color__name'))
+        # Paginate
+        detect_order_details = list(annotated_order_details.values())
         return JsonResponse({
                 'code': 0,
                 'message': "Get order info successfully",
                 'data': {
                     **found_orders,
-                    'details': found_order_details
+                    'details': detect_order_details
                 }
             })
     except LookupError :
