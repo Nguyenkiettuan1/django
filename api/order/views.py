@@ -255,6 +255,7 @@ def get_list_order(request):
     order_status = params_value.get('status', '')
     from_date = params_value.get('fromDate', '')
     to_date = params_value.get('toDate', '')
+    must_show_other = params_value.get('mustShowOther', False)
     # Pagination
     page = int(params_value.get('page', 0))
     limit = int(params_value.get('limit', 10))
@@ -273,7 +274,7 @@ def get_list_order(request):
         # Init preparedQuery
         prepared_query = {}
         # Auto add if user is not admin or staff
-        if not is_ad_staff:
+        if not is_ad_staff or not must_show_other:
             prepared_query['user'] = req_uid
         if order_id != '':
             prepared_query['id'] = order_id
@@ -291,6 +292,13 @@ def get_list_order(request):
                     'message': "Invalid to date format"
                 })
             prepared_query['created_at__lte'] = to_date
+        if order_status != '':
+            if order_status not in list(order_config.get('status', {}).values()):
+                return JsonResponse({
+                    'code': -1,
+                    'message': "Trạng thái không được hỗ trợ"
+                })
+            prepared_query['status'] = order_status
         # Go found order
         found_orders = Order.objects.filter(**prepared_query).select_related('payment')
         # Count total
