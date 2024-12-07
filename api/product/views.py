@@ -9,7 +9,7 @@ import json
 from ..policies import customPermission
 from .models import Product, ProductDetails, Color, Size, Material, Type, ProductMaterials, ProductTypes,product_config, product_details_config, color_config, product_colors_config, size_config, product_sizes_config, material_config, product_materials_config, type_config, product_types_config
 from ..utils import Obj, Int, UUIDEncoder, ImageProcessing
-
+import os
 # ViewSet for Product
 class ProductViewSet(viewsets.ModelViewSet):
     queryset = Product.objects.all()
@@ -281,6 +281,8 @@ def edit_product(request):
     add_product_materials = data.get('addMaterials', [])
     delete_product_types = data.get('deleteTypes', [])
     delete_product_materials = data.get('deleteMaterials', [])
+    add_product_images = data.get('addImages', [])
+    delete_product_images = data.get('deleteImages', [])
     try:
         # Validate authen
         if not customPermission.is_role_admin(request, token):
@@ -435,12 +437,24 @@ def edit_product(request):
                         'message': "This product material not exited"
                     })
                 product_materials_name.pop(material)
+        written_images = found_product.image
+        if not Obj.is_empty(add_product_images):
+            for image in add_product_images:
+                write_image = ImageProcessing.base64_to_image(image, 'img/product')
+                written_images.append(write_image)
+        if not Obj.is_empty(delete_product_images):
+            written_images = [img for img in written_images if img not in delete_product_images]
+            for delete_img in delete_product_images:
+                os.remove(delete_img)
+        if not Obj.is_empty(add_product_images) or not Obj.is_empty(delete_product_images):
+            prepared_product_update['image'] = written_images
         # Go update all value
         if (Obj.is_empty(prepared_product_update) 
             and Obj.is_empty(add_product_types)
             and Obj.is_empty(delete_product_types)
             and Obj.is_empty(add_product_materials)
-            and Obj.is_empty(delete_product_materials)):
+            and Obj.is_empty(delete_product_materials)
+            ):
             return JsonResponse({
                         'code': -1,
                         'message': "Don't have value to update"
@@ -602,6 +616,9 @@ def get_list_product(request):
     parse_params = dict(params_value)
     product_types = parse_params.get('types[]', [])
     product_materials = parse_params.get('materials[]', [])
+    product_sizes = parse_params.get('sizes[]', [])
+    product_colors = parse_params.get('colors[]', [])
+
     # Pagination
     page = int(params_value.get('page', 0))
     limit = int(params_value.get('limit', 10))
@@ -750,55 +767,59 @@ def add_product_details(request):
         # Find all product details
         found_product_details = ProductDetails.objects.filter(product=product_id).values('color', 'size')
         # Parse to list
-        validated_details = [(detail['color'], detail['size']) for detail in found_product_details]
+        validated_details = []
         # Get exited product details
         for detail in found_product_details:
             color_id = detail.get('color', '')
             size_id = detail.get('size', '')
-            validated_details.append(f'{color_id}-{size_id}')
+            validated_details.append(f'{color_id}_{size_id}')
         # Get exited product details
         for detail in product_details:
             color_id = detail.get('color', '')
             size_id = detail.get('size', '')
             qty = detail.get('qty', 0)
-            if f'{color_id}-{size_id}' in validated_details:
-                return JsonResponse({
-                    'code': -1,
-                    'message': "Duplicate product details value or details existed"
-                })
             # Validate color
             found_color = Color.objects.filter(id = color_id).first() or {}
             if found_color == {}:
                 return JsonResponse({
                     'code': -1,
-                    'message': "Color not found or missing value"
+                    'message': "Màu sắc chưa được hỗ trợ"
                 })
             # Validate size
             found_size = Size.objects.filter(id = size_id).first() or {}
             if found_size == {}:
                 return JsonResponse({
                     'code': -1,
-                    'message': "Size not found or missing value"
+                    'message': "Kích cỡ chưa được hỗ trợ"
+                })
+            if f'{color_id}_{size_id}' in validated_details:
+                return JsonResponse({
+                    'code': -1,
+                    'message': f"Sản phẩm {found_product.name} với màu săc: {found_color.name} - kích cỡ: {found_size.name} bị trùng lặp"
                 })
             # found details
             if not isinstance(qty, int):
                 return JsonResponse({
                     'code': -1,
-                    'message': "Qty must be a number"
+                    'message': "Số lượng phải là con số"
                 })
             else:
                 if qty < 0:
                     return JsonResponse({
-                    'code': -1,
-                    'message': "Qty must be positive integer"
-                })
-            validated_details.append(f'{color_id}-{size_id}')
+                        'code': -1,
+                        'message': "Số lượng phải lớn hơn 0"
+                    })
+            validated_details.append(f'{color_id}_{size_id}')
+
         # Go create product details 
         created_product_details = []
         for detail in product_details:
             color_id = detail.get('color', '')
             size_id = detail.get('size', '')
             qty = detail.get('qty', 0)
+            found_color = Color.objects.get(id = color_id) or {}
+            found_size = Size.objects.get(id = size_id) or {}
+
             #  create
             create_product_details = ProductDetails.objects.create(
                 product = found_product,
@@ -819,6 +840,7 @@ def add_product_details(request):
             'message': LookupError.__doc__
         })
     
+@csrf_exempt
 def edit_product_details(request):
     if not request.method == 'PUT':
         return JsonResponse({'error': 'Send a valid PUT request'})
@@ -829,7 +851,7 @@ def edit_product_details(request):
     raw_data = request.body.decode('utf-8')
     data = json.loads(raw_data)
     # Only product value
-    product_detail = data.get('productDetail', '')
+    product_detail = data.get('id', '')
     product_details_qty = data.get('qty', '')
     product_details_status = data.get('status', '')
     try:

@@ -190,6 +190,7 @@ def list_user(request):
     params_value = request.GET or {}
     user_id = params_value.get('id', '')
     user_email = params_value.get('email', '')
+    user_phone = params_value.get('phone', '')
     user_status = params_value.get('status', '')
     user_role = params_value.get('role', '')
     # Pagination
@@ -209,6 +210,8 @@ def list_user(request):
             prepared_query['id'] = user_id
         if user_email != '':
             prepared_query['email'] = user_email
+        if user_phone != '':
+            prepared_query['phone__icontains'] = user_phone
         if user_status != '':
             if not user_status in list(user_config.get('status').values()):
                 return JsonResponse({
