@@ -17,7 +17,8 @@ order_config = {
         # "REFUND": "refund",
         # "ERROR": "error",
         "DELETED": "deleted"
-    }
+    },
+    "user_access_status": ["completed", "deleted"]
 }
     
 class Order(models.Model):

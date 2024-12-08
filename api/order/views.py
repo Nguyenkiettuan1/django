@@ -242,6 +242,7 @@ def add_order(request):
             'message': LookupError.__doc__
         })
     
+@csrf_exempt
 def get_list_order(request):
     if not request.method == 'GET':
         return JsonResponse({'error': 'Send a valid GET request'})
@@ -323,6 +324,7 @@ def get_list_order(request):
             'message': LookupError.__doc__
         })
 
+@csrf_exempt
 def order_info(request):
     if not request.method == 'GET':
         return JsonResponse({'error': 'Send a valid GET request'})
@@ -386,6 +388,7 @@ def order_info(request):
             'message': LookupError.__doc__
         })
 
+@csrf_exempt
 def update_order_status(request):
     if not request.method == 'PUT':
         return JsonResponse({'error': 'Send a valid PUT request'})
@@ -423,49 +426,63 @@ def update_order_status(request):
         if not is_admin_or_staff:
             prepared_query['user'] = req_uid
         # Get order info
-        found_order = Order.objects.filter(**prepared_query).first() or {}
-        if found_order == {}:
+        found_order = Order.objects.filter(**prepared_query) or {}
+        detect_found_order = found_order.first() or {}
+        if detect_found_order == {}:
             return JsonResponse({
                 'code': -1,
                 'message': "Order not found"
             })
         # Detect order_info
-        found_order_info = model_to_dict(found_order)
+        found_order_info = model_to_dict(detect_found_order)
         found_order_status = found_order_info.get('status', '')
+        available_status = list(order_config.get('status', {}).values())
         # Validate update status
-        if order_status == '' or not order_status in list(order_config.get('status', {}).values()):
+        if order_status == '':
             return JsonResponse({
                 'code': -1,
-                'message': "Order status is required"
+                'message': "Trạng thái đơn hàng đang trống"
             })
-        if not order_status in [order_config.get('status').get('DELETED'),
-                                order_config.get('status').get('COMPLETED')]:
-            if not is_admin_or_staff:
-                return JsonResponse({
-                    'code': -1,
-                    'message': "User cannot access this status"
-                })
+        # go filter available status for user
+        if not is_admin_or_staff:
+                # User have only deleted status to access
+            if found_order_status == order_config.get('status').get('PROGRESS'):
+                available_status = [order_config.get('status').get("DELETED")]
+                # User have only completed status to access
+            if found_order_status == order_config.get('status').get('TO_SHIP'):
+                available_status = [order_config.get('status').get("COMPLETED")]
+                # User have any status to access
+            if found_order_status in [order_config.get('status').get("DELETED"), 
+                                      order_config.get('status').get("COMPLETED")]:
+                available_status = []
+        if not order_status in available_status:
+            return JsonResponse({
+                'code': -1,
+                'message': "Trạng thái đơn hàng không hỗ trợ"
+            })
         if order_status == found_order_status:
             return JsonResponse({
                     'code': -1,
-                    'message': "You are updating the same status"
+                    'message': "Trang thái đang được cập nhật trùng lặp"
             })
-        if found_order_status in [order_config.get('status').get('TO_SHIP'), order_config.get('status').get('COMPLETED')] and order_status == order_config.get('status').get('DELETED'):
-            return JsonResponse({
-                    'code': -1,
-                    'message': "Can not delete order while it's on shipping"
-                })                
-        elif order_status in [order_config.get('status').get('DELETED')]:
+        # if found_order_status in [order_config.get('status').get('TO_SHIP'), order_config.get('status').get('COMPLETED')] and order_status == order_config.get('status').get('DELETED'):
+        #     return JsonResponse({
+        #             'code': -1,
+        #             'message': "Can not delete order while it's on shipping"
+        #         })                
+        if order_status in [order_config.get('status').get('DELETED')]:
             # Found order details by order id
-            found_order_details = list(OrderDetails.objects.filter(order = order_id).select_related('order_details'))
+            found_order_details = OrderDetails.objects.filter(order = order_id).select_related('product_details')
+            found_order_details = list(found_order_details)
             # Get order_details
             for order_detail in found_order_details:
-                product_details = order_detail.get('product_details')
+                product_details = order_detail.product_details
                 order_detail_qty = order_detail.qty
                 product_details_qty = product_details.qty
+                product_details_id = str(product_details.id)
                 final_qty = product_details_qty + order_detail_qty
                 # Go update product details qty
-                product_details.update(qty = final_qty)
+                ProductDetails.objects.filter(id = product_details_id).update(qty = final_qty)
             # Update qty to order detais
         found_order.update(status = order_status)
         return JsonResponse({

@@ -11,5 +11,6 @@ router.register(r'order-details', orderdetailsViewSet)  # Register the OrderDeta
 urlpatterns = [
     path('order-get-list',views.get_list_order, name = 'order-view' ),
     path('order-add', views.add_order,name = 'order-add'),
-    path('order-info',views.order_info,name = 'order-info')# Include the router URLs under the API path
+    path('order-info',views.order_info,name = 'order-info'),# Include the router URLs under the API path
+    path('order-edit-status',views.update_order_status,name = 'order-edit-status')# Include the router URLs under the API path
 ]
