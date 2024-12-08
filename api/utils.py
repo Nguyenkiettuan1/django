@@ -39,6 +39,17 @@ class Date():
             return True
         except ValueError:
             return False
+
+class Bool():
+    def parse_from_string(value):
+        if isinstance(value, str):
+            value = value.strip().lower()  # Normalize case and remove extra spaces
+            if value == "true":
+                return True
+            elif value == "false":
+                return  False
+        else:
+            return  False
         
 class ImageProcessing():
     def base64_to_image(image_data, file_path):

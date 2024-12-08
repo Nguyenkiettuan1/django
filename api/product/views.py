@@ -8,7 +8,7 @@ from django.forms.models import model_to_dict
 import json
 from ..policies import customPermission
 from .models import Product, ProductDetails, Color, Size, Material, Type, ProductMaterials, ProductTypes,product_config, product_details_config, color_config, product_colors_config, size_config, product_sizes_config, material_config, product_materials_config, type_config, product_types_config
-from ..utils import Obj, Int, UUIDEncoder, ImageProcessing
+from ..utils import Obj, Int, UUIDEncoder, ImageProcessing, Bool
 import os
 # ViewSet for Product
 class ProductViewSet(viewsets.ModelViewSet):
@@ -529,11 +529,7 @@ def product_info(request):
     product_id = params_value.get('id', '')
     must_limit_access = params_value.get('limitAccess', True)
     if isinstance(must_limit_access, str):
-        must_limit_access = must_limit_access.strip().lower()  # Normalize case and remove extra spaces
-        if must_limit_access == "true":
-            must_limit_access = True
-        elif must_limit_access == "false":
-            must_limit_access  = False
+        must_limit_access = Bool.parse_from_string(must_limit_access)
     # init is admin
     is_admin = False
     try:
@@ -720,7 +716,7 @@ def get_list_product(request):
             not Obj.is_empty(product_materials)
         ):
             prepared_query['id__in'] = product_ids
-        found_products = Product.objects.filter(**prepared_query)
+        found_products = Product.objects.filter(**prepared_query).order_by('-updated_at')
         # Count total
         total_count = found_products.count()
         # Paginate
@@ -1015,7 +1011,7 @@ def get_list_color(request):
         if color_name != '':
             prepared_query['name__icontains'] = color_name
         # Go filter
-        found_colors = Color.objects.filter(**prepared_query)
+        found_colors = Color.objects.filter(**prepared_query).order_by('-updated_at')
         # Count total
         total_count = found_colors.count()
         # Paginate
@@ -1220,7 +1216,7 @@ def get_list_size(request):
         if size_name != '':
             prepared_query['name__icontains'] = size_name
         # Go filter
-        found_sizes = Size.objects.filter(**prepared_query)
+        found_sizes = Size.objects.filter(**prepared_query).order_by('-updated_at')
         # Count total
         total_count = found_sizes.count()
         # Paginate
@@ -1424,7 +1420,7 @@ def get_list_material(request):
         if material_name != '':
             prepared_query['name__icontains'] = material_name
         # Go filter
-        found_materials = Material.objects.filter(**prepared_query)
+        found_materials = Material.objects.filter(**prepared_query).order_by('-updated_at')
         # Count total
         total_count = found_materials.count()
         # Paginate
@@ -1637,7 +1633,7 @@ def get_list_type(request):
                 })
             prepared_query['status'] = type_status
         # Go filter
-        found_types = Type.objects.filter(**prepared_query)
+        found_types = Type.objects.filter(**prepared_query).order_by('-updated_at')
         # Count total
         total_count = found_types.count()
         # Paginate

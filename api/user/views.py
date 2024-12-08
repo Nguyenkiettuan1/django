@@ -227,7 +227,7 @@ def list_user(request):
             })
             prepared_query['role'] = user_role
         # Go query
-        found_users = UserCustomer.objects.filter(**prepared_query)
+        found_users = UserCustomer.objects.filter(**prepared_query).order_by('-updated_at')
         # Count total
         total_count = found_users.count()
         # Paginate

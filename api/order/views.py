@@ -14,7 +14,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.forms.models import model_to_dict
 import re
 import json
-from ..utils import Obj, Int, UUIDEncoder, Date
+from ..utils import Obj, Int, UUIDEncoder, Date, Bool
 from ..policies import customPermission
 from ..jwt_token import jwtToken
 from django.db.models import F
@@ -257,6 +257,8 @@ def get_list_order(request):
     from_date = params_value.get('fromDate', '')
     to_date = params_value.get('toDate', '')
     must_show_other = params_value.get('mustShowOther', False)
+    if isinstance(must_show_other, str):
+        must_show_other = Bool.parse_from_string(must_show_other)
     # Pagination
     page = int(params_value.get('page', 0))
     limit = int(params_value.get('limit', 10))
@@ -301,7 +303,7 @@ def get_list_order(request):
                 })
             prepared_query['status'] = order_status
         # Go found order
-        found_orders = Order.objects.filter(**prepared_query).select_related('payment')
+        found_orders = Order.objects.filter(**prepared_query).select_related('payment').order_by('-updated_at')
         # Count total
         total_count = found_orders.count()
         annotated_orders  = found_orders.annotate(payment_method_name=F('payment__payment_method__name'))
@@ -487,6 +489,10 @@ def update_order_status(request):
         found_order.update(status = order_status)
         return JsonResponse({
             'code': 0,
+            'data': {
+                **found_order_info,
+                "status": order_status
+            },
             'message': 'Update order status successfully'
         })
     except LookupError :
