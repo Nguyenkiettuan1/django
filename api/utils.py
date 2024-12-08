@@ -53,7 +53,7 @@ class ImageProcessing():
             now = str(datetime.datetime.now().timestamp())
             file_name = f"{now}-{random.randint(1, 100)}.{extension}"
             # Build the full file path
-            full_file_path = os.path.join(file_path, file_name)
+            full_file_path = f'{file_path}/{file_name}'
             # Write the decoded data to the file
             with open(full_file_path, 'wb') as f:
                 f.write(decoded_data)
