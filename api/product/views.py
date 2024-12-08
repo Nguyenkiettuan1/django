@@ -527,6 +527,13 @@ def product_info(request):
     # Get param
     params_value = request.GET or {}
     product_id = params_value.get('id', '')
+    must_limit_access = params_value.get('limitAccess', True)
+    if isinstance(must_limit_access, str):
+        must_limit_access = must_limit_access.strip().lower()  # Normalize case and remove extra spaces
+        if must_limit_access == "true":
+            must_limit_access = True
+        elif must_limit_access == "false":
+            must_limit_access  = False
     # init is admin
     is_admin = False
     try:
@@ -553,7 +560,7 @@ def product_info(request):
             'product': product_id
         }
         # Detect to only active details if user is not admin
-        if not is_admin:
+        if not is_admin or must_limit_access:
             prepared_product_details['status__in'] = [product_details_config.get('status').get('ACTIVE')]
         # Go found product details
         found_product_details =  ProductDetails.objects.filter(**prepared_product_details).select_related('size', 'color') or {}
