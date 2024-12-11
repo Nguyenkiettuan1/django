@@ -13,7 +13,7 @@ import json
 from ..utils import Obj, Int, UUIDEncoder
 from ..policies import customPermission
 from ..jwt_token import jwtToken
-
+from django.utils.timezone import now
 class UserViewSet(viewsets.ModelViewSet):
     permission_classes_by_action = {'create': [AllowAny]}
 
@@ -391,7 +391,10 @@ def update_user(request):
                 'message': "Don't have value to update"
             })
         # Go update
-        UserCustomer.objects.filter(**where).update(**prepared_update)
+        UserCustomer.objects.filter(**where).update(
+            **prepared_update,
+            updated_at=now()
+        )
         # Get user value after update
         after_update_user = UserCustomer.objects.filter(**where).first()
         # Go convert to object

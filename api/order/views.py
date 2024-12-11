@@ -18,6 +18,7 @@ from ..utils import Obj, Int, UUIDEncoder, Date, Bool
 from ..policies import customPermission
 from ..jwt_token import jwtToken
 from django.db.models import F
+from django.utils.timezone import now
 
 # ViewSet for Product
 class orderViewSet(viewsets.ModelViewSet):
@@ -486,7 +487,10 @@ def update_order_status(request):
                 # Go update product details qty
                 ProductDetails.objects.filter(id = product_details_id).update(qty = final_qty)
             # Update qty to order detais
-        found_order.update(status = order_status)
+        found_order.update(
+            status = order_status,
+            updated_at=now()
+        )
         return JsonResponse({
             'code': 0,
             'data': {

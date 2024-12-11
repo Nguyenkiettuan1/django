@@ -10,6 +10,8 @@ from ..policies import customPermission
 from .models import Product, ProductDetails, Color, Size, Material, Type, ProductMaterials, ProductTypes,product_config, product_details_config, color_config, product_colors_config, size_config, product_sizes_config, material_config, product_materials_config, type_config, product_types_config
 from ..utils import Obj, Int, UUIDEncoder, ImageProcessing, Bool
 import os
+from django.utils.timezone import now
+
 # ViewSet for Product
 class ProductViewSet(viewsets.ModelViewSet):
     queryset = Product.objects.all()
@@ -489,7 +491,10 @@ def edit_product(request):
                 ).delete()
         # Go update product info
         if not Obj.is_empty(prepared_product_update):
-            Product.objects.filter(id = product_id).update(**prepared_product_update)
+            Product.objects.filter(id = product_id).update(
+                **prepared_product_update,
+                updated_at=now()
+            )
         # Get product info after update
         product_info = Product.objects.filter(id = product_id).first() or {}
         product_info = model_to_dict(product_info)
@@ -896,7 +901,10 @@ def edit_product_details(request):
                     })
             prepared_update['status'] =  product_details_status
         #  Go update
-        found_product_details.update(**prepared_update)
+        found_product_details.update(
+            **prepared_update,
+            updated_at=now()
+        )
         # Find all product details
         after_update_product_details = ProductDetails.objects.filter(id = product_detail).first()
         # Go convert to object
