@@ -1011,7 +1011,7 @@ def get_list_color(request):
         if color_name != '':
             prepared_query['name__icontains'] = color_name
         # Go filter
-        found_colors = Color.objects.filter(**prepared_query).order_by('-updated_at')
+        found_colors = Color.objects.filter(**prepared_query)
         # Count total
         total_count = found_colors.count()
         # Paginate
@@ -1216,7 +1216,7 @@ def get_list_size(request):
         if size_name != '':
             prepared_query['name__icontains'] = size_name
         # Go filter
-        found_sizes = Size.objects.filter(**prepared_query).order_by('-updated_at')
+        found_sizes = Size.objects.filter(**prepared_query)
         # Count total
         total_count = found_sizes.count()
         # Paginate
@@ -1420,7 +1420,7 @@ def get_list_material(request):
         if material_name != '':
             prepared_query['name__icontains'] = material_name
         # Go filter
-        found_materials = Material.objects.filter(**prepared_query).order_by('-updated_at')
+        found_materials = Material.objects.filter(**prepared_query)
         # Count total
         total_count = found_materials.count()
         # Paginate
@@ -1633,7 +1633,7 @@ def get_list_type(request):
                 })
             prepared_query['status'] = type_status
         # Go filter
-        found_types = Type.objects.filter(**prepared_query).order_by('-updated_at')
+        found_types = Type.objects.filter(**prepared_query)
         # Count total
         total_count = found_types.count()
         # Paginate
