@@ -14,6 +14,7 @@ from ..utils import Obj, Int, UUIDEncoder
 from ..policies import customPermission
 from ..jwt_token import jwtToken
 from django.utils.timezone import now
+from rest_framework.decorators import api_view
 class UserViewSet(viewsets.ModelViewSet):
     permission_classes_by_action = {'create': [AllowAny]}
 

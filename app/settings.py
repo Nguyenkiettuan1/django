@@ -27,7 +27,7 @@ SECRET_KEY = 'django-insecure-s933(!45w*6mwj&2deg1$hj4n8m%f2vjvk41o@)^=%nf95k_x(
 DEBUG = True
 
 ALLOWED_HOSTS = [
-    '127.0.0.1'
+    '127.0.0.1','localhost','db'
 ]
 
 
@@ -102,7 +102,7 @@ DATABASES = {
         'NAME': 'the-banned',
         'USER': 'postgres',
         'PASSWORD': '123456',
-        'HOST': 'localhost',
+        'HOST': 'db',
         'PORT': 5432,
     }
 }

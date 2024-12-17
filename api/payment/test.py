@@ -9,7 +9,7 @@ from rest_framework.test import APIClient, APITestCase
 
 from api.jwt_token import jwtToken
 from api.payment.models import PaymentMethod, payment_config, UserPayments
-from api.user.models import UserCustomer, user_config
+from ..user.models import UserCustomer, user_config
 
 
 class AddPaymentTestCase(APITestCase):
@@ -138,7 +138,8 @@ class EditPaymentTestCase(APITestCase):
         self.payment_method = PaymentMethod.objects.create(
             name="Credit Card",
             status=payment_config.get("status", {}).get("ACTIVE"),
-            required_details=["card_number", "expiration_date"]
+            required_details=["card_number", "expiration_date"],
+
         )
 
         # API endpoint
@@ -351,7 +352,7 @@ class UserPaymentTestCase(APITestCase):
         self.payment_method = PaymentMethod.objects.create(
             name="Credit Card",
             status=payment_config.get("status", {}).get("ACTIVE"),
-            required_details=["card_number", "expiration_date"]
+            required_details=list(["card_number", "expiration_date"])
         )
 
         # API endpoint
@@ -390,7 +391,7 @@ class UserPaymentTestCase(APITestCase):
         response = self.client.post(
             self.url,
             data=json.dumps({
-                'id': 9999,  # Assuming this ID doesn't exist
+                'paymentMethod': 9999,  # Assuming this ID doesn't exist
                 'paymentDetails': {'card_number': '1234', 'expiry_date': '12/24'},
             }),
             content_type='application/json',
@@ -405,7 +406,7 @@ class UserPaymentTestCase(APITestCase):
         response = self.client.post(
             self.url,
             data=json.dumps({
-                'id': str(self.payment_method.id),
+                'paymentMethod': str(self.payment_method.id),
                 'paymentDetails': {'card_number': '1234'},  # Missing expiry_date
             }),
             content_type='application/json',
@@ -420,8 +421,8 @@ class UserPaymentTestCase(APITestCase):
         response = self.client.post(
             self.url,
             data=json.dumps({
-                'id': str(self.payment_method.id),
-                "paymentDetails": ["card_number", "expiration_date"],
+                'paymentMethod': str(self.payment_method.id),
+                'paymentDetails': {'card_number': '1234', 'expiration_date': '12/24'},
                 'status': 'INVALID_STATUS'
             }),
             content_type='application/json',
@@ -436,7 +437,7 @@ class UserPaymentTestCase(APITestCase):
         response = self.client.post(
             self.url,
             data=json.dumps({
-                'id': str(self.payment_method.id),
+                'paymentMethod': str(self.payment_method.id),
                 'paymentDetails': {'card_number': '1234', 'expiration_date': '12/24'},
             }),
             content_type='application/json',
@@ -451,7 +452,7 @@ class UserPaymentTestCase(APITestCase):
 
 
 
-class UserPaymentTestCase(APITestCase):
+class get_list_UserPaymentTestCase(APITestCase):
 
     def setUp(self):
         """Set up test data."""
@@ -527,7 +528,7 @@ class UserPaymentTestCase(APITestCase):
         """Test that the status provided must be supported."""
         response = self.client.get(
             self.url,
-            data={'status': 'INVALID_STATUS'},  # Invalid status
+            data={'user': str(self.admin_user.id),'status': 'INVALID_STATUS'},  # Invalid status
             HTTP_AUTHORIZATION=f'Bearer {self.admin_token}'
         )
         self.assertEqual(response.status_code, 200)

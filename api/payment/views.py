@@ -455,7 +455,7 @@ def get_list_user_payment(request):
         # return
         return JsonResponse({
             'code': 0,
-            'message': "Update user payment successfully",
+            'message': 'Get list user payment successfully',
             'data': user_payments,
             'pagination': {
                 'page': page,
