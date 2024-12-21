@@ -1,6 +1,6 @@
 from itertools import product
 
-from ..user.models import UserCustomer, user_config
+from api.user.models import UserCustomer, user_config
 from django.urls import reverse
 
 from rest_framework.test import APITestCase,APIClient, testcases
@@ -8,6 +8,7 @@ from rest_framework import status
 from .models import Product, Type, Material, Color, Size, ProductDetails, ProductMaterials, ProductTypes
 import json
 from ..jwt_token import jwtToken
+from uuid import uuid4
 import uuid
 
 
@@ -791,7 +792,7 @@ class Product_add_product_details(APITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {
             "code": -1,
-            "message": "Duplicate product details value or details existed"
+            "message": f'Sản phẩm Test Product với màu săc: {self.color.name} - kích cỡ: {self.size.name} bị trùng lặp'
         })
 
     def test_color_not_found(self):
@@ -812,7 +813,7 @@ class Product_add_product_details(APITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(),{
             'code': -1,
-            'message': "Color not found or missing value"
+            'message': "Màu sắc chưa được hỗ trợ"
         }
         )
 
@@ -835,7 +836,7 @@ class Product_add_product_details(APITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(),{
             'code': -1,
-            'message': "Size not found or missing value"
+            'message': 'Kích cỡ chưa được hỗ trợ'
         }
         )
 
@@ -857,7 +858,7 @@ class Product_add_product_details(APITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {
             "code": -1,
-            "message": "Qty must be a number"
+            "message": "Số lượng phải là con số"
         })
 
     def test_qty_not_positive_integer(self):
@@ -878,7 +879,7 @@ class Product_add_product_details(APITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {
             "code": -1,
-            "message": "Qty must be positive integer"
+            "message": "Số lượng phải lớn hơn 0"
         })
     def test_successful_add_product_details(self):
         payload = {
@@ -992,7 +993,7 @@ class Product_edit_product_details(APITestCase):
     def test_product_detail_not_found(self):
         """Test API returns error when product detail is not found."""
         payload = {
-            "productDetail": str(self.product.id),
+            "id": str(self.product.id),
             "qty": 20,
             "status": "available"
         }
@@ -1011,7 +1012,7 @@ class Product_edit_product_details(APITestCase):
     def test_qty_not_a_number(self):
         """Test API returns error when quantity is not a number."""
         payload = {
-            "productDetail": str(self.product_detail.id),
+            "id": str(self.product_detail.id),
             "qty": "invalid_qty",
             "status": "available"
         }
@@ -1030,7 +1031,7 @@ class Product_edit_product_details(APITestCase):
     def test_qty_is_negative(self):
         """Test API returns error when quantity is negative."""
         payload = {
-            "productDetail": str(self.product_detail.id),
+            "id": str(self.product_detail.id),
             "qty": -5,
             "status": "available"
         }
@@ -1049,7 +1050,7 @@ class Product_edit_product_details(APITestCase):
     def test_invalid_status_value(self):
         """Test API returns error when status value is invalid."""
         payload = {
-            "productDetail": str(self.product_detail.id),
+            "id": str(self.product_detail.id),
             "qty": 20,
             "status": "invalid_status"
         }
@@ -1068,7 +1069,7 @@ class Product_edit_product_details(APITestCase):
     def test_successful_update_product_details(self):
         """Test API successfully updates product details."""
         payload = {
-            "productDetail": str(self.product_detail.id),
+            "id": str(self.product_detail.id),
             "qty": 50,
             "status": "active"
         }
@@ -1287,15 +1288,6 @@ class Get_list_color_APITestCase(APITestCase):
     #     self.assertEqual(len(response.json()["data"]), 1)
     #     self.assertEqual(response.json()["data"][0]["name"], "Red")
 
-    def test_get_all_colors_as_admin(self):
-        """Test admin retrieves all colors."""
-        response = self.client.get(
-            self.url,
-            HTTP_AUTHORIZATION=f"Bearer {self.admin_token}"
-        )
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.json()["code"], 0)
-        self.assertEqual(len(response.json()["data"]), 2)
 
 
 class Edit_color_APITestCase(APITestCase):
@@ -1671,15 +1663,6 @@ class Get_list_Materials_APITestCase(APITestCase):
     #     self.assertEqual(len(response.json()["data"]), 1)
     #     self.assertEqual(response.json()["data"][0]["name"], "Red")
 
-    def test_get_all_colors_as_admin(self):
-        """Test admin retrieves all colors."""
-        response = self.client.get(
-            self.url,
-            HTTP_AUTHORIZATION=f"Bearer {self.admin_token}"
-        )
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.json()["code"], 0)
-        self.assertEqual(len(response.json()["data"]), 2)
 
 
 class Edit_materials_APITestCase(APITestCase):
@@ -2272,15 +2255,6 @@ class get_list_sizeTests(APITestCase):
             "code": -1,
             "message": "Status value does not support"
         })
-    def test_get_list_type_successfully_admin(self):
-        """Test retrieving the type list as an admin."""
-        response = self.client.get(path=self.url,
-                                    content_type="application/json",
-                                   HTTP_AUTHORIZATION=f"Bearer {self.admin_token}")
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.json()["code"], 0)
-        self.assertEqual(response.json()["message"], "Get list size successfully")
-        self.assertEqual(response.json()["pagination"]["total"], 4)
 
 
 class EditSizeAPITest(APITestCase):

@@ -130,7 +130,7 @@ def add_to_cart(request):
     except LookupError :
         return JsonResponse({
             'code': -1,
-            'message': LookupError.__doc__
+            'message': LookupError.__name__
         })
 
 @csrf_exempt
@@ -185,7 +185,7 @@ def get_list_cart(request):
             product_name = product.get('name')
             product_price = product.get('price')
             product_status = product.get('status')
-            product_img = product.get('image')[0] or ''
+            product_img = product.get('image') if product.get('image') else ''
             # Parse cart
             tmp_cart = model_to_dict(user_cart)
             tmp_cart.pop('user')
@@ -228,10 +228,10 @@ def get_list_cart(request):
             'message': 'Get list cart successfully',
             'data': filter_cart
         })
-    except LookupError :
+    except Exception as e:
         return JsonResponse({
             'code': -1,
-            'message': LookupError.__doc__
+            'message': f"Unexpected error: {str(e)}"
         })
 
 @csrf_exempt
@@ -299,7 +299,7 @@ def edit_cart(request):
                     'message': "Don't have enough available product"
                 })
             prepared_update['qty'] = cart_qty
-        
+
         # Validate status
         if cart_status != '':
             if not cart_status in [

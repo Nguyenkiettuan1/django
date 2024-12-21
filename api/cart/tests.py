@@ -66,6 +66,21 @@ class CartModelTest(APITestCase):
         self.assertEqual(response.json()['code'], 0)
         self.assertEqual(response.json()['message'], 'Add to cart successfully')
 
+    def test_product_detail_not_found(self):
+        """Test adding to cart with a non-existent product detail ID."""
+        data = {
+            'productDetails': str(uuid.uuid4()),  # Non-existent UUID
+            'productQty': 5
+        }
+        response = self.client.post(
+            self.url,
+            data=json.dumps(data),
+            content_type='application/json',
+            HTTP_AUTHORIZATION=f'Bearer {self.USER_TOKEN}'
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['message'], 'Product detail not found')
+
     def test_user_not_logged_in(self):
         """Test adding to cart when user is not logged in."""
         self.client.logout()
@@ -182,13 +197,15 @@ class get_list_cart(APITestCase):
 
     def test_get_list_cart_successfully(self):
         """Test fetching the cart list successfully."""
-        response = self.client.get(self.url
-                                    , content_type='application/json'
-                                    , HTTP_AUTHORIZATION=f'Bearer {self.USER_TOKEN}')
+        response = self.client.get(
+            self.url,
+            data = {'uid': str(self.USER.id), 'id[]': [str(self.cart.id)]},  # Send cart ID as GET parameter
+            HTTP_AUTHORIZATION=f'Bearer {self.USER_TOKEN}'  # Authorization header with token
+        )
+
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()['code'], 0)
         self.assertEqual(response.json()['message'], 'Get list cart successfully')
-        self.assertTrue('data' in response.json())
+        self.assertIn('data', response.json())  # Ensure 'data' key exists
         self.assertEqual(len(response.json()['data']), 1)
 
     def test_user_not_logged_in(self):

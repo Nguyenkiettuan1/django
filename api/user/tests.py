@@ -26,6 +26,17 @@ class UserAPITestCase(APITestCase):
     """"                            TEST LOGIN                                      """
     """"                 -------------------------------                            """
     """"                 -------------------------------                            """
+
+    def test_post_request(self):
+        url = reverse('login')
+        data = {
+            "email": self.user_data['email'],
+            "password": self.user_data['password']
+        }
+
+        response = self.client.get(url, data,format='json')
+        self.assertEqual(response.json().get('error'), 'Send a valid POST request')
+
     def test_login_success(self):
         """Test successful login with valid credentials"""
         url = reverse('login')
